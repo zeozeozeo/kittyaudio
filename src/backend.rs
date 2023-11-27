@@ -16,11 +16,7 @@ use cpal::StreamConfig;
 /// Specifies what device [`cpal`] should use.
 ///
 /// For example, if you want [`cpal`] to use the default OS audio device,
-/// use [`Device::Default`]. If you want select a device by name, use this:
-///
-/// ```no_run
-/// Device::Name("device name".to_string());
-/// ```
+/// use [`Device::Default`]. If you want select a device by name, use `Device::Name("device name".to_string())`.
 ///
 /// Use [`device_names`] to get all device names available on the system. The
 /// [`Device`] struct also has methods for finding a device by name and getting

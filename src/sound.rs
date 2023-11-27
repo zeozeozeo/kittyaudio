@@ -10,12 +10,7 @@ use {crate::KaError, std::io::Cursor};
 /// Includes a sound in the executable. The `use-symphonia` feature must be
 /// enabled for this macro to exist.
 ///
-/// This is a shorthand for
-/// ```no_run
-/// use kittyaudio::Sound;
-/// use std::io::Cursor;
-/// let sound = Sound::from_cursor(Cursor::new(include_bytes!(path)));
-/// ```
+/// This is a shorthand for `Sound::from_cursor(Cursor::new(include_bytes!(path)))`.
 #[macro_export]
 #[cfg(feature = "use-symphonia")]
 macro_rules! include_sound {
