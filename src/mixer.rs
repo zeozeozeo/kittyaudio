@@ -1,6 +1,5 @@
+use crate::{Backend, Device, Frame, Sound, SoundHandle, StreamSettings};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
-
-use crate::{Backend, Device, Frame, Sound, SoundHandle};
 
 /// Audio renderer.
 pub struct Renderer {
@@ -47,8 +46,9 @@ impl RendererHandle {
 /// and the audio playback is handled by the [`Backend`].
 #[derive(Clone)]
 pub struct Mixer {
-    /// Underlying audio renderer.
+    /// Handle to the underlying audio renderer.
     pub renderer: RendererHandle,
+    /// Handle to the underlying audio backend.
     pub backend: Arc<Mutex<Backend>>,
 }
 
@@ -97,7 +97,7 @@ impl Mixer {
     /// Start the audio thread with default backend settings.
     #[inline]
     pub fn init(&self) {
-        self.init_ex(Device::Default, None, None);
+        self.init_ex(Device::Default, StreamSettings::default());
     }
 
     /// Start the audio thread with custom backend settings.
@@ -105,12 +105,7 @@ impl Mixer {
     /// * `device`: The audio device to use. Set to `Device::Default` for defaults.
     /// * `stream_config`: The audio stream configuration. Set to [`None`] for defaults.
     /// * `sample_format`: The audio sample format. Set to [`None`] for defaults.
-    pub fn init_ex(
-        &self,
-        device: Device,
-        stream_config: Option<cpal::StreamConfig>,
-        sample_format: Option<cpal::SampleFormat>,
-    ) {
+    pub fn init_ex(&self, device: Device, settings: StreamSettings) {
         let backend = self.backend.clone();
         let renderer = self.renderer.clone();
         std::thread::spawn(move || {
@@ -118,7 +113,7 @@ impl Mixer {
             let _ = backend
                 .lock()
                 .unwrap_or_else(PoisonError::into_inner)
-                .start_audio_thread(device, stream_config, sample_format, renderer);
+                .start_audio_thread(device, settings, renderer);
         });
     }
 

@@ -1,3 +1,6 @@
+//! KittyAudio is a Rust audio library focusing on simplicity.
+#![warn(missing_docs)]
+
 mod backend;
 mod error;
 mod mixer;

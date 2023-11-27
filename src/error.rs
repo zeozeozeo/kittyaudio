@@ -2,6 +2,7 @@ use thiserror::Error;
 
 /// KittyAudio's error type.
 #[derive(Error, Debug)]
+#[allow(missing_docs)]
 pub enum KaError {
     #[error("failed to get output device")]
     NoOutputDevice,

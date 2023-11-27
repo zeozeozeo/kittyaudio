@@ -13,35 +13,54 @@ use cpal::SampleFormat;
 use cpal::SizedSample;
 use cpal::StreamConfig;
 
+/// Specifies what device [`cpal`] should use.
+///
+/// For example, if you want [`cpal`] to use the default OS audio device,
+/// use [`Device::Default`]. If you want select a device by name, use this:
+///
+/// ```no_run
+/// Device::Name("device name".to_string());
+/// ```
+///
+/// Use [`device_names`] to get all device names available on the system. The
+/// [`Device`] struct also has methods for finding a device by name and getting
+/// the default device as a [`Device::Custom`].
 #[derive(Default)]
 pub enum Device {
+    /// Use the default OS audio device.
     #[default]
     Default,
+    /// Specify a device by name.
     Name(String),
+    /// Use a [`cpal::Device`].
     Custom(cpal::Device),
+}
+
+impl Device {
+    /// Finds a [`cpal`] audio output device ([`cpal::Device`]) by name.
+    pub fn from_name(name: &str) -> Result<Self, KaError> {
+        let host = cpal::default_host();
+        Ok(Self::Custom(
+            host.output_devices()?
+                .find(|d| device_name(d) == name)
+                .ok_or(KaError::NoOutputDevice)?,
+        ))
+    }
+
+    /// Get the default device as [`Device::Custom`].
+    pub fn default_device() -> Result<Self, KaError> {
+        let host = cpal::default_host();
+        Ok(Self::Custom(
+            host.default_output_device()
+                .ok_or(KaError::NoOutputDevice)?,
+        ))
+    }
 }
 
 /// Returns all device names available on the system.
 pub fn device_names() -> Result<Vec<String>, KaError> {
     let host = cpal::default_host();
-    Ok(host
-        .output_devices()?
-        .map(|d| d.name().unwrap_or_default())
-        .collect())
-}
-
-/// Finds a [`cpal`] audio output device ([`cpal::Device`]) by name.
-pub fn get_device_by_name(name: &str) -> Result<cpal::Device, KaError> {
-    let host = cpal::default_host();
-    host.output_devices()?
-        .find(|d| d.name().unwrap_or_default() == name)
-        .ok_or(KaError::NoOutputDevice)
-}
-
-/// Returns the default cpal audio output device ([`cpal::Device`]).
-pub fn get_default_device() -> Result<cpal::Device, KaError> {
-    let host = cpal::default_host();
-    host.default_output_device().ok_or(KaError::NoOutputDevice)
+    Ok(host.output_devices()?.map(|d| device_name(&d)).collect())
 }
 
 #[inline]
@@ -61,15 +80,53 @@ fn device_name(device: &cpal::Device) -> String {
         .unwrap_or_else(|_| "<unavailable>".to_string())
 }
 
+/// Wrapper around [`cpal`]'s stream settings.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct StreamSettings {
+    /// Amount of channels. If [`None`], [`cpal`] provides the default value.
+    pub channels: Option<u16>,
+    /// Audio framerate. If [`None`], [`cpal`] provides the default value.
+    pub sample_rate: Option<u32>,
+    /// Audio buffer size (in samples). If [`None`], [`cpal`] provides the default value.
+    pub buffer_size: Option<u32>,
+    /// Amount of channels. If [`None`], [`cpal`] provides the default value.
+    pub sample_format: Option<SampleFormat>,
+    /// Whether to check the stream for device changes/disconnections.
+    pub check_stream: bool,
+    /// Interval at which to check the stream for device changes/disconnections.
+    pub check_stream_interval: Duration,
+}
+
+impl Default for StreamSettings {
+    fn default() -> Self {
+        Self {
+            channels: None,
+            sample_rate: None,
+            buffer_size: None,
+            sample_format: None,
+            check_stream: true,
+            check_stream_interval: Duration::from_millis(500),
+        }
+    }
+}
+
+/// A wrapper around [`cpal`]'s stream. The [`Backend`] will check for device
+/// changes or disconnections, handle errors and manage the stream.
 #[derive(Default)]
 pub struct Backend {
+    /// Stream error queue.
     pub error_queue: Arc<Mutex<Vec<cpal::StreamError>>>,
+    /// The interval at which the stream should be checked.
     pub check_stream_interval: Duration,
+    /// Whether the stream should be checked.
     pub check_stream: bool,
+    /// Whether to stop the stream at the next stream check.
+    // TODO: how can we apply this faster?
     stop_stream: bool,
 }
 
 impl Backend {
+    /// Creates a new [`Backend`].
     #[inline]
     pub fn new() -> Self {
         Self {
@@ -80,6 +137,7 @@ impl Backend {
         }
     }
 
+    /// Handle all errors in the error queue.
     #[inline]
     pub fn handle_errors(&mut self, err_fn: impl FnMut(cpal::StreamError)) {
         self.error_queue
@@ -93,10 +151,11 @@ impl Backend {
     pub fn start_audio_thread(
         &mut self,
         device: Device,
-        stream_config: Option<cpal::StreamConfig>,
-        sample_format: Option<cpal::SampleFormat>,
+        settings: StreamSettings,
         renderer: RendererHandle,
     ) -> Result<(), KaError> {
+        // cpal will panic if no default host is present, we can't do anything
+        // about that
         let host = cpal::default_host();
 
         // get output device
@@ -106,26 +165,35 @@ impl Backend {
                 .ok_or(KaError::NoOutputDevice)?,
             Device::Name(name) => host
                 .output_devices()?
-                .find(|d| d.name().unwrap_or_default() == name)
+                .find(|d| device_name(d) == name)
                 .ok_or(KaError::NoOutputDevice)?,
             Device::Custom(device) => device,
         };
 
-        // get stream config
-        let (config, sample_format) = if let Some(config) = stream_config {
-            let sample_format = if let Some(sample_format) = sample_format {
-                sample_format
-            } else {
-                let config = device.default_output_config()?;
-                config.sample_format()
-            };
+        // get supported stream config
+        let default_config = device.default_output_config()?;
+        let sample_format = settings
+            .sample_format
+            .unwrap_or(default_config.sample_format());
 
-            (config, sample_format)
-        } else {
-            let config = device.default_output_config()?;
-            let sample_format = config.sample_format();
-            (config.into(), sample_format)
+        // create modified stream config (if `settings` has [`Some`] values)
+        let config = StreamConfig {
+            channels: settings
+                .channels
+                .unwrap_or(default_config.config().channels),
+            sample_rate: settings
+                .sample_rate
+                .map(cpal::SampleRate)
+                .unwrap_or(default_config.sample_rate()),
+            buffer_size: settings
+                .buffer_size
+                .map(cpal::BufferSize::Fixed)
+                .unwrap_or(cpal::BufferSize::Default),
         };
+
+        // update backend settings
+        self.check_stream = settings.check_stream;
+        self.check_stream_interval = settings.check_stream_interval;
 
         // check if this is a custom device
         let custom_device =
@@ -159,6 +227,7 @@ impl Backend {
         Ok(())
     }
 
+    /// Stop the audio thread at the next stream check.
     #[inline(always)]
     pub fn stop_stream(&mut self) {
         self.stop_stream = true;
@@ -200,6 +269,7 @@ impl Backend {
         false
     }
 
+    /// Start the [`cpal`] stream.
     fn start_stream<T>(
         &mut self,
         device: &cpal::Device,
@@ -263,13 +333,17 @@ impl Backend {
             // check stream
             if self.check_stream && self.check_stream(device, config, custom_device) {
                 drop(stream); // stop this stream so we can start a new one
-                return self.start_audio_thread(Device::Default, None, None, renderer);
+                return self.start_audio_thread(
+                    Device::Default,
+                    StreamSettings::default(),
+                    renderer,
+                );
             }
 
             // see if we should stop the stream
             if self.stop_stream {
                 self.stop_stream = false;
-                drop(stream);
+                drop(stream); // stop stream
                 break;
             }
         }

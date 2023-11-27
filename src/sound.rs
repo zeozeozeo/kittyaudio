@@ -7,6 +7,15 @@ use std::time::Duration;
 #[cfg(feature = "use-symphonia")]
 use {crate::KaError, std::io::Cursor};
 
+/// Includes a sound in the executable. The `use-symphonia` feature must be
+/// enabled for this macro to exist.
+///
+/// This is a shorthand for
+/// ```no_run
+/// use kittyaudio::Sound;
+/// use std::io::Cursor;
+/// let sound = Sound::from_cursor(Cursor::new(include_bytes!(path)));
+/// ```
 #[macro_export]
 #[cfg(feature = "use-symphonia")]
 macro_rules! include_sound {
@@ -24,23 +33,29 @@ use symphonia::core::{
     sample::Sample,
 };
 
+/// Represents an audio sample. Stores a left and right channel.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub struct Frame {
+    /// Left channel value. Float.
     pub left: f32,
+    /// Right channel value. Float.
     pub right: f32,
 }
 
 impl Frame {
+    /// A frame with all channels set to 0.0.
     pub const ZERO: Self = Self {
         left: 0.0,
         right: 0.0,
     };
 
+    /// Create a new audio frame from left and right values.
     #[inline]
     pub const fn new(left: f32, right: f32) -> Self {
         Self { left, right }
     }
 
+    /// Create a new audio frame from a single value.
     #[inline]
     pub const fn from_mono(value: f32) -> Self {
         Self::new(value, value)
@@ -185,6 +200,7 @@ impl From<f64> for PlaybackRate {
 pub struct Sound {
     /// Sample rate of the sound.
     sample_rate: u32,
+    /// Audio data. Not mutable.
     pub frames: Arc<[Frame]>,
     /// Whether the sound is paused.
     pub paused: bool,

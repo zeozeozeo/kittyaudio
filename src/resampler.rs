@@ -1,5 +1,6 @@
 use crate::Frame;
 
+/// Stores an audio frame and the frame index of that frame.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 struct ResamplerFrame {
     /// An audio frame.
@@ -9,6 +10,7 @@ struct ResamplerFrame {
     index: usize,
 }
 
+/// Resamples audio from one sample rate to another.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub struct Resampler {
     /// Recent 4 frames with their frame index.
@@ -36,7 +38,7 @@ pub fn interpolate_frame(
 }
 
 impl Resampler {
-    /// Create a new resampler.
+    /// Create a new [`Resampler`].
     #[inline]
     pub const fn new(starting_index: usize) -> Self {
         Self {
