@@ -15,6 +15,8 @@ fn main() {
     // see the Device struct for more details.
     mixer.init_ex(Device::Default, settings);
 
-    mixer.play(sound);
+    let sound = mixer.play(sound);
+    sound.seek_by(50.0);
+
     mixer.wait();
 }

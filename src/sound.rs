@@ -500,6 +500,34 @@ impl Sound {
         self.volume = volume;
         prev_volume
     }
+
+    /// Seek to an index in the source data.
+    #[inline]
+    pub fn seek_to_index(&mut self, index: usize) {
+        self.index = index;
+
+        // if the sound is playing, push this frame to the resampler so it
+        // doesn't get skipped
+        if !self.paused {
+            self.push_frame_to_resampler();
+        }
+    }
+
+    /// Seek by a specified amount of seconds.
+    #[inline]
+    pub fn seek_by(&mut self, seconds: f64) {
+        let cur_position = self.index as f64 / self.sample_rate as f64;
+        let position = cur_position + seconds;
+        let index = (position * self.sample_rate as f64) as usize;
+        self.seek_to_index(index);
+    }
+
+    /// Seek to a specified position in seconds.
+    #[inline]
+    pub fn seek_to(&mut self, seconds: f64) {
+        let index = (seconds * self.sample_rate as f64) as usize;
+        self.seek_to_index(index);
+    }
 }
 
 /// Wraps a [`Sound`] so it can be returned to the user after `play`.
@@ -579,7 +607,34 @@ impl SoundHandle {
     }
 
     /// Set the current volume. Return the previous volume value.
+    #[inline]
     pub fn set_volume(&self, volume: f32) -> f32 {
         self.guard().set_volume(volume)
+    }
+
+    /// Seek to an index in the source data.
+    #[inline]
+    pub fn seek_to_index(&self, index: usize) {
+        self.guard().seek_to_index(index);
+    }
+
+    /// Seek by a specified amount of seconds.
+    #[inline]
+    pub fn seek_by(&self, amount: f64) {
+        self.guard().seek_by(amount);
+    }
+
+    /// Seek to a specified position in seconds.
+    #[inline]
+    pub fn seek_to(&self, seconds: f64) {
+        self.guard().seek_to(seconds);
+    }
+
+    /// Clone the underlying [`Sound`] and return it.
+    ///
+    /// This does not clone the actual sound data!
+    #[inline]
+    pub fn clone_sound(&self) -> Sound {
+        self.guard().clone()
     }
 }

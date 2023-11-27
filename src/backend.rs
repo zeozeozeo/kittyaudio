@@ -174,17 +174,17 @@ impl Backend {
         let default_config = device.default_output_config()?;
         let sample_format = settings
             .sample_format
-            .unwrap_or(default_config.sample_format());
+            .unwrap_or_else(|| default_config.sample_format());
 
         // create modified stream config (if `settings` has [`Some`] values)
         let config = StreamConfig {
             channels: settings
                 .channels
-                .unwrap_or(default_config.config().channels),
+                .unwrap_or_else(|| default_config.config().channels),
             sample_rate: settings
                 .sample_rate
                 .map(cpal::SampleRate)
-                .unwrap_or(default_config.sample_rate()),
+                .unwrap_or_else(|| default_config.sample_rate()),
             buffer_size: settings
                 .buffer_size
                 .map(cpal::BufferSize::Fixed)
