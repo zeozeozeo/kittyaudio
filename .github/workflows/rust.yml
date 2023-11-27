@@ -16,7 +16,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Install ALSA
+      run: sudo apt-get install libasound2-dev alsa-base alsa-utils
     - name: Build
       run: cargo build --verbose
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo test --all-features --verbose
+    - name: Rustfmt
+      run: cargo fmt --all -- --check
+    - name: Install cargo-cranky
+      uses: baptiste0928/cargo-install@v1
+      with:
+        crate: cargo-cranky
+    - name: Cranky
+      run: cargo cranky --all-targets --all-features -- -D warnings
