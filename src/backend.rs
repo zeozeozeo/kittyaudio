@@ -113,7 +113,14 @@ impl Backend {
 
         // get stream config
         let (config, sample_format) = if let Some(config) = stream_config {
-            (config, sample_format.unwrap_or(cpal::SampleFormat::F32))
+            let sample_format = if let Some(sample_format) = sample_format {
+                sample_format
+            } else {
+                let config = device.default_output_config()?;
+                config.sample_format()
+            };
+
+            (config, sample_format)
         } else {
             let config = device.default_output_config()?;
             let sample_format = config.sample_format();

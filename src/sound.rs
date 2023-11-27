@@ -295,9 +295,7 @@ impl Sound {
             symphonia::default::get_probe().format(&hint, mss, &format_opts, &metadata_opts)?;
 
         let mut format = probed.format;
-        let Some(track) = format.default_track() else {
-            return Err(KaError::NoTracksArePresent); // failed to get default track
-        };
+        let track = format.default_track().ok_or(KaError::NoTracksArePresent)?;
 
         // create a decoder for the track
         let mut decoder =
