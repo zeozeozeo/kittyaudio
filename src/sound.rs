@@ -186,6 +186,14 @@ impl PlaybackRate {
             Self::Semitones(semitones) => semitones,
         }
     }
+
+    /// Reverse the playback rate so the sound plays backwards.
+    pub fn reverse(self) -> Self {
+        match self {
+            Self::Factor(factor) => Self::Factor(-factor),
+            Self::Semitones(semitones) => Self::Semitones(-semitones),
+        }
+    }
 }
 
 impl From<f64> for PlaybackRate {
@@ -438,6 +446,12 @@ impl Sound {
         );
     }
 
+    /// Return whether the sound is playing backward.
+    #[inline]
+    pub fn is_playing_backwards(&mut self) -> bool {
+        self.playback_rate.as_factor().is_sign_negative()
+    }
+
     /// Increment/decrement the position value in the sound, pushing the
     /// previous sound frame to the resampler.
     pub fn update_position(&mut self) {
@@ -445,7 +459,13 @@ impl Sound {
             self.resampler.push_frame(Frame::ZERO, self.index);
         } else {
             self.push_frame_to_resampler();
-            self.index += 1; // TODO: loops
+
+            // increment/decrement index
+            if self.is_playing_backwards() {
+                self.index -= 1;
+            } else {
+                self.index += 1
+            }
         }
     }
 
@@ -513,6 +533,12 @@ impl Sound {
         }
     }
 
+    /// Seek to the end of the sound.
+    #[inline]
+    pub fn seek_to_end(&mut self) {
+        self.seek_to_index(self.frames.len().saturating_sub(1));
+    }
+
     /// Seek by a specified amount of seconds.
     #[inline]
     pub fn seek_by(&mut self, seconds: f64) {
@@ -527,6 +553,12 @@ impl Sound {
     pub fn seek_to(&mut self, seconds: f64) {
         let index = (seconds * self.sample_rate as f64) as usize;
         self.seek_to_index(index);
+    }
+
+    /// Reverse the playback rate so the sound plays backwards.
+    #[inline]
+    pub fn reverse(&mut self) {
+        self.playback_rate = self.playback_rate.reverse();
     }
 }
 
@@ -618,6 +650,11 @@ impl SoundHandle {
         self.guard().seek_to_index(index);
     }
 
+    /// Seek to the end of the sound.
+    pub fn seek_to_end(&self) {
+        self.guard().seek_to_end();
+    }
+
     /// Seek by a specified amount of seconds.
     #[inline]
     pub fn seek_by(&self, amount: f64) {
@@ -636,5 +673,11 @@ impl SoundHandle {
     #[inline]
     pub fn clone_sound(&self) -> Sound {
         self.guard().clone()
+    }
+
+    /// Reverse the playback rate so the sound plays backwards.
+    #[inline]
+    pub fn reverse(&self) {
+        self.guard().reverse();
     }
 }

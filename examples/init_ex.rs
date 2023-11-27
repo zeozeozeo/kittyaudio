@@ -1,3 +1,4 @@
+//! Initialize mixer with extra stream parameters.
 use kittyaudio::{include_sound, Device, Mixer, StreamSettings};
 
 fn main() {
@@ -16,7 +17,7 @@ fn main() {
     mixer.init_ex(Device::Default, settings);
 
     let sound = mixer.play(sound);
-    sound.seek_by(50.0);
+    sound.seek_by(50.0); // seek 50 seconds forward
 
-    mixer.wait();
+    mixer.wait(); // wait for all sounds to finish
 }
