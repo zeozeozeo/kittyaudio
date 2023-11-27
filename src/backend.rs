@@ -81,7 +81,7 @@ fn device_name(device: &cpal::Device) -> String {
 }
 
 /// Wrapper around [`cpal`]'s stream settings.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StreamSettings {
     /// Amount of channels. If [`None`], [`cpal`] provides the default value.
     pub channels: Option<u16>,
@@ -247,7 +247,7 @@ impl Backend {
             .unwrap_or_else(PoisonError::into_inner)
             .drain(..)
         {
-            if let cpal::StreamError::DeviceNotAvailable = err {
+            if matches!(err, cpal::StreamError::DeviceNotAvailable) {
                 return true;
             }
         }

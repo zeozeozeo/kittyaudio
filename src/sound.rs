@@ -172,8 +172,8 @@ impl PlaybackRate {
     #[inline] // float arithmetic is not allowed in const fns
     pub fn as_factor(self) -> f64 {
         match self {
-            PlaybackRate::Factor(factor) => factor,
-            PlaybackRate::Semitones(semitones) => 2.0f64.powf(semitones / 12.0),
+            Self::Factor(factor) => factor,
+            Self::Semitones(semitones) => (semitones / 12.0).exp2(),
         }
     }
 
@@ -182,8 +182,8 @@ impl PlaybackRate {
     #[inline] // float arithmetic is not allowed in const fns
     pub fn as_semitones(self) -> f64 {
         match self {
-            PlaybackRate::Factor(factor) => 12.0 * factor.log2(),
-            PlaybackRate::Semitones(semitones) => semitones,
+            Self::Factor(factor) => 12.0 * factor.log2(),
+            Self::Semitones(semitones) => semitones,
         }
     }
 }
