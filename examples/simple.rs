@@ -42,7 +42,7 @@ fn main() {
 // same thing but without comments.
 #[cfg(not)]
 fn main() {
-    let sound = include_sound!("peace or annihilation.ogg").unwrap();
+    let sound = include_sound!("drozerix_-_crush.ogg").unwrap();
 
     let mut mixer = Mixer::new();
     mixer.init();
