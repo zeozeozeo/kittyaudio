@@ -1,11 +1,14 @@
 use crate::resampler::Resampler;
-use crate::KaError;
+use std::ops::AddAssign;
 use std::ops::{Add, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
-use std::{io::Cursor, ops::AddAssign};
+
+#[cfg(feature = "use-symphonia")]
+use {crate::KaError, std::io::Cursor};
 
 #[macro_export]
+#[cfg(feature = "use-symphonia")]
 macro_rules! include_sound {
     ($path:expr) => {
         $crate::Sound::from_cursor(::std::io::Cursor::new(include_bytes!($path)))
@@ -222,6 +225,7 @@ impl Default for Sound {
 }
 
 /// Helper function to convert Symphonia's [`AudioBufferRef`] to a vector of [`Frame`]s.
+#[cfg(feature = "use-symphonia")]
 fn load_frames_from_buffer_ref(buffer: &AudioBufferRef) -> Result<Vec<Frame>, KaError> {
     match buffer {
         AudioBufferRef::U8(buffer) => load_frames_from_buffer(buffer),
@@ -238,6 +242,7 @@ fn load_frames_from_buffer_ref(buffer: &AudioBufferRef) -> Result<Vec<Frame>, Ka
 }
 
 /// Convert an [`AudioBuffer`] into a [`Vec`] of [`Frame`]s.
+#[cfg(feature = "use-symphonia")]
 fn load_frames_from_buffer<S: Sample>(buffer: &AudioBuffer<S>) -> Result<Vec<Frame>, KaError>
 where
     f32: FromSample<S>,

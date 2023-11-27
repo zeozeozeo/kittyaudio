@@ -1,4 +1,6 @@
 //! Simple example of playing a sound with the [`kittyaudio`] library.
+//!
+//! This example requires the `use-symphonia` feature.
 
 use kittyaudio::{include_sound, Mixer};
 use std::time::Instant;
