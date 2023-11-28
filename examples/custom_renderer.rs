@@ -1,4 +1,4 @@
-//! Example of creating a backend witha custom renderer.
+//! Example of creating a backend with a custom renderer.
 use kittyaudio::{Backend, Device, Frame, Renderer, RendererHandle, StreamSettings};
 use std::{thread, time::Duration};
 
