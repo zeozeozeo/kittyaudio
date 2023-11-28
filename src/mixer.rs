@@ -1,21 +1,28 @@
 use crate::{Backend, Device, Frame, Sound, SoundHandle, StreamSettings};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
-/// Audio renderer.
-pub struct Renderer {
-    /// The streams' audio sample rate.
-    pub sample_rate: u32,
+/// The audio renderer trait. Can be used to make custom audio renderers.
+pub trait Renderer: Clone + Send + 'static {
+    /// Render the next audio frame. The backend provides the sample rate and
+    /// expects the left and right channel values ([`Frame`]).
+    ///
+    /// Note: you can use a [`crate::Resampler`] to resample audio data.
+    fn next_frame(&mut self, sample_rate: u32) -> Frame;
+}
+
+/// Default audio renderer.
+#[derive(Debug, Clone, Default)]
+pub struct DefaultRenderer {
     /// All playing sounds.
     pub sounds: Vec<SoundHandle>,
 }
 
-impl Renderer {
-    /// Render the next audio frame.
-    pub fn next_frame(&mut self) -> Frame {
+impl Renderer for DefaultRenderer {
+    fn next_frame(&mut self, sample_rate: u32) -> Frame {
         // mix samples from all playing sounds
         let mut out = Frame::ZERO;
         for sound in &mut self.sounds {
-            out += sound.guard().next_frame(self.sample_rate);
+            out += sound.guard().next_frame(sample_rate);
         }
 
         // remove all sounds that finished playback
@@ -27,17 +34,17 @@ impl Renderer {
 
 /// Wraps [`Renderer`] so it can be shared between threads.
 #[derive(Clone)]
-pub struct RendererHandle(Arc<Mutex<Renderer>>);
+pub struct RendererHandle<R: Renderer>(Arc<Mutex<R>>);
 
-impl RendererHandle {
+impl<R: Renderer> RendererHandle<R> {
     /// Create a new renderer handle.
-    pub fn new(renderer: Renderer) -> Self {
+    pub fn new(renderer: R) -> Self {
         Self(Arc::new(Mutex::new(renderer)))
     }
 
     /// Get a lock on the underlying renderer.
     #[inline(always)]
-    pub fn guard(&self) -> MutexGuard<'_, Renderer> {
+    pub fn guard(&self) -> MutexGuard<'_, R> {
         self.0.lock().unwrap_or_else(PoisonError::into_inner)
     }
 }
@@ -47,7 +54,7 @@ impl RendererHandle {
 #[derive(Clone)]
 pub struct Mixer {
     /// Handle to the underlying audio renderer.
-    pub renderer: RendererHandle,
+    pub renderer: RendererHandle<DefaultRenderer>,
     /// Handle to the underlying audio backend.
     pub backend: Arc<Mutex<Backend>>,
 }
@@ -62,11 +69,7 @@ impl Mixer {
     /// Create a new audio mixer.
     pub fn new() -> Self {
         Self {
-            // backend: Arc::new(Backend::new()),
-            renderer: RendererHandle::new(Renderer {
-                sample_rate: 44100,
-                sounds: Vec::new(),
-            }),
+            renderer: RendererHandle::new(DefaultRenderer::default()),
             backend: Arc::new(Mutex::new(Backend::new())),
         }
     }

@@ -4,6 +4,7 @@ use std::sync::PoisonError;
 use std::time::Duration;
 
 use crate::KaError;
+use crate::Renderer;
 use crate::RendererHandle;
 use cpal::traits::DeviceTrait;
 use cpal::traits::HostTrait;
@@ -144,12 +145,15 @@ impl Backend {
     }
 
     /// Starts the audio thread.
-    pub fn start_audio_thread(
+    pub fn start_audio_thread<R>(
         &mut self,
         device: Device,
         settings: StreamSettings,
-        renderer: RendererHandle,
-    ) -> Result<(), KaError> {
+        renderer: RendererHandle<R>,
+    ) -> Result<(), KaError>
+    where
+        R: Renderer,
+    {
         // cpal will panic if no default host is present, we can't do anything
         // about that
         let host = cpal::default_host();
@@ -203,20 +207,20 @@ impl Backend {
         // start the stream for the requested sample format
         use SampleFormat::*;
         match sample_format {
-            I8 => self.start_stream::<i8>(&device, &config, renderer, custom_device)?,
-            I16 => self.start_stream::<i16>(&device, &config, renderer, custom_device)?,
-            // I24 => self.start_stream::<I24>(&device, &conf, I24.into(), renderer,custom_device)?,
-            I32 => self.start_stream::<i32>(&device, &config, renderer, custom_device)?,
-            // I48 => self.start_stream::<I48>(&device, &conf, I48.into(), renderer,custom_device)?,
-            I64 => self.start_stream::<i64>(&device, &config, renderer, custom_device)?,
-            U8 => self.start_stream::<u8>(&device, &config, renderer, custom_device)?,
-            U16 => self.start_stream::<u16>(&device, &config, renderer, custom_device)?,
-            // U24 => self.start_stream::<U24>(&device, &conf, U24.into(), renderer,custom_device)?,
-            U32 => self.start_stream::<u32>(&device, &config, renderer, custom_device)?,
-            // U48 => self.start_stream::<U48>(&device, &conf, U48.into(), renderer,custom_device)?,
-            U64 => self.start_stream::<u64>(&device, &config, renderer, custom_device)?,
-            F32 => self.start_stream::<f32>(&device, &config, renderer, custom_device)?,
-            F64 => self.start_stream::<f64>(&device, &config, renderer, custom_device)?,
+            I8 => self.start_stream::<i8, R>(&device, &config, renderer, custom_device)?,
+            I16 => self.start_stream::<i16, R>(&device, &config, renderer, custom_device)?,
+            // I24 => self.start_stream::<I24, R>(&device, &conf, I24.into(), renderer,custom_device)?,
+            I32 => self.start_stream::<i32, R>(&device, &config, renderer, custom_device)?,
+            // I48 => self.start_stream::<I48, R>(&device, &conf, I48.into(), renderer,custom_device)?,
+            I64 => self.start_stream::<i64, R>(&device, &config, renderer, custom_device)?,
+            U8 => self.start_stream::<u8, R>(&device, &config, renderer, custom_device)?,
+            U16 => self.start_stream::<u16, R>(&device, &config, renderer, custom_device)?,
+            // U24 => self.start_stream::<U24, R>(&device, &conf, U24.into(), renderer,custom_device)?,
+            U32 => self.start_stream::<u32, R>(&device, &config, renderer, custom_device)?,
+            // U48 => self.start_stream::<U48, R>(&device, &conf, U48.into(), renderer,custom_device)?,
+            U64 => self.start_stream::<u64, R>(&device, &config, renderer, custom_device)?,
+            F32 => self.start_stream::<f32, R>(&device, &config, renderer, custom_device)?,
+            F64 => self.start_stream::<f64, R>(&device, &config, renderer, custom_device)?,
             sample_format => return Err(KaError::UnsupportedSampleFormat(sample_format)),
         }
 
@@ -266,20 +270,19 @@ impl Backend {
     }
 
     /// Start the [`cpal`] stream.
-    fn start_stream<T>(
+    fn start_stream<T, R>(
         &mut self,
         device: &cpal::Device,
         config: &cpal::StreamConfig,
-        renderer: RendererHandle,
+        renderer: RendererHandle<R>,
         custom_device: bool,
     ) -> Result<(), KaError>
     where
         T: SizedSample + FromSample<f32>,
+        R: Renderer,
     {
-        // update the renderer's sample rate
-        renderer.guard().sample_rate = config.sample_rate.0;
-
         let channels = config.channels as usize; // number of channels
+        let sample_rate = config.sample_rate.0; // sample rate
         let error_queue = self.error_queue.clone(); // stream error queue
 
         // create a clone of the renderer handle so we can move it inside the
@@ -291,7 +294,7 @@ impl Backend {
             move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
                 for frame in data.chunks_exact_mut(channels) {
                     // mix next frame
-                    let out = renderer_moved.guard().next_frame();
+                    let out = renderer_moved.guard().next_frame(sample_rate);
 
                     // write to buffer
                     if channels == 1 {
