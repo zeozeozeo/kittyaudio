@@ -203,8 +203,8 @@ impl From<f64> for PlaybackRate {
 pub struct Sound {
     /// Sample rate of the sound.
     sample_rate: u32,
-    /// Audio data. Not mutable.
-    pub frames: Arc<[Frame]>,
+    /// Audio data.
+    pub frames: Vec<Frame>,
     /// Whether the sound is paused.
     pub paused: bool,
     /// The current playback position in frames.
@@ -224,7 +224,7 @@ impl Default for Sound {
     fn default() -> Self {
         let mut sound = Self {
             sample_rate: 0,
-            frames: Arc::new([]),
+            frames: vec![],
             paused: false,
             index: 0,
             resampler: Resampler::new(0),
@@ -417,6 +417,22 @@ impl Sound {
         self.sample_rate
     }
 
+    /// Create a silent [`Sound`] with a duration of a specified amount of audio frames.
+    pub fn silent_frames(num_frames: usize, sample_rate: u32) -> Self {
+        Self {
+            sample_rate,
+            frames: vec![Frame::ZERO; num_frames],
+            ..Default::default()
+        }
+    }
+
+    /// Create a silent [`Sound`] with a duration of a specified amount of seconds.
+    #[inline]
+    pub fn silent_seconds(seconds: f64, sample_rate: u32) -> Self {
+        let num_frames = (seconds * sample_rate as f64) as usize;
+        Self::silent_frames(num_frames, sample_rate)
+    }
+
     /// Return the duration of the sound.
     ///
     /// Returns [`Duration`].
@@ -555,6 +571,30 @@ impl Sound {
     pub fn reverse(&mut self) {
         self.playback_rate = self.playback_rate.reverse();
     }
+
+    /// Overlay a [`Sound`] at a specified index.
+    pub fn overlay_at_index(&mut self, other: &Self, index: usize) {
+        if index >= self.frames.len() {
+            return;
+        }
+
+        let mut cloned = other.clone();
+        cloned.seek_to_index(index);
+
+        for frame in &mut self.frames[index..] {
+            if cloned.finished() {
+                break;
+            }
+            *frame += cloned.next_frame(self.sample_rate);
+        }
+    }
+
+    /// Overlay a [`Sound`] at a specified position in seconds.
+    #[inline]
+    pub fn overlay_at(&mut self, other: &Self, seconds: f64) {
+        let index = (seconds * self.sample_rate as f64) as usize;
+        self.overlay_at_index(other, index);
+    }
 }
 
 /// Wraps a [`Sound`] so it can be returned to the user after `play`.
@@ -674,5 +714,17 @@ impl SoundHandle {
     #[inline]
     pub fn reverse(&self) {
         self.guard().reverse();
+    }
+
+    /// Overlay a [`Sound`] at a specified index.
+    #[inline]
+    pub fn overlay_at_index(&self, other: &Sound, index: usize) {
+        self.guard().overlay_at_index(other, index);
+    }
+
+    /// Overlay a [`Sound`] at a specified position in seconds.
+    #[inline]
+    pub fn overlay_at(&self, other: &Sound, seconds: f64) {
+        self.guard().overlay_at(other, seconds);
     }
 }
