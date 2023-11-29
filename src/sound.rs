@@ -585,11 +585,10 @@ impl Sound {
     fn update_commands(&mut self, dt: f64) {
         for command in &mut self.commands {
             if command.start_after <= 0.0 {
-                // start_after will be negative, so this acts as subtraction
-                let elapsed = -command.start_after;
-
                 // compute value with easing
-                let t = command.value((elapsed / command.duration) as f32);
+                // start_after will be negative, and it counts the amount of time
+                // the sound has been running for
+                let t = command.value((-command.start_after / command.duration) as f32);
 
                 // apply change
                 match command.change {
