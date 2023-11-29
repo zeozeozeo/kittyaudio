@@ -358,7 +358,7 @@ impl Sound {
 
         Ok(Self {
             sample_rate,
-            frames,
+            frames: frames.into(),
             ..Default::default()
         })
     }
