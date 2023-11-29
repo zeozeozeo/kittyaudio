@@ -1,4 +1,7 @@
-use crate::{Frame, Sound, SoundHandle};
+use crate::{Frame, SoundHandle};
+
+#[allow(unused_imports)] // for comments
+use crate::Sound;
 
 #[cfg(feature = "playback")]
 use crate::{Backend, Device, StreamSettings};
@@ -22,10 +25,11 @@ pub struct DefaultRenderer {
 }
 
 impl DefaultRenderer {
-    /// Start playing a sound. Accepts a [`SoundHandle`].
+    /// Start playing a sound. Accepts a type that can be converted into a
+    /// [`SoundHandle`].
     #[inline]
-    pub fn add_sound(&mut self, sound: SoundHandle) {
-        self.sounds.push(sound);
+    pub fn add_sound(&mut self, sound: impl Into<SoundHandle>) {
+        self.sounds.push(sound.into());
     }
 
     /// Return whether the renderer has any playing sounds.
@@ -76,7 +80,7 @@ impl<R: Renderer> RendererHandle<R> {
 /// and the audio playback is handled by the [`Backend`].
 #[derive(Clone)]
 pub struct Mixer {
-    /// Handle to the underlying audio renderer.
+    /// Handle to the default audio renderer.
     pub renderer: RendererHandle<DefaultRenderer>,
     /// Handle to the underlying audio backend.
     #[cfg(feature = "playback")]
@@ -111,8 +115,8 @@ impl Mixer {
     /// Note: Cloning a [`Sound`] *does not* take any extra memory, as [`Sound`]
     /// shares frame data with all clones.
     #[inline]
-    pub fn play(&mut self, sound: Sound) -> SoundHandle {
-        let handle = SoundHandle::new(sound);
+    pub fn play(&mut self, sound: impl Into<SoundHandle>) -> SoundHandle {
+        let handle = sound.into();
         self.renderer.guard().add_sound(handle.clone());
         handle
     }
@@ -160,5 +164,55 @@ impl Mixer {
     #[inline]
     pub fn is_finished(&self) -> bool {
         !self.renderer.guard().has_sounds()
+    }
+}
+
+/// A mixer for recording audio.
+///
+/// This mixer does not play the audio, only records it. See [`Mixer`] for a
+/// mixer that supports audio playback.
+pub struct RecordMixer {
+    /// A handle to the default audio renderer.
+    pub renderer: RendererHandle<DefaultRenderer>,
+}
+
+impl Default for RecordMixer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl RecordMixer {
+    /// Create a new audio recording mixer.
+    pub fn new() -> Self {
+        Self {
+            renderer: DefaultRenderer::default().into(),
+        }
+    }
+
+    /// Play a [`Sound`] in the recording mixer. The samples of the sound are
+    /// only processed when `fill_buffer` is called.
+    ///
+    /// Note: Cloning a [`Sound`] *does not* take any extra memory, as [`Sound`]
+    /// shares frame data with all clones.
+    #[inline]
+    pub fn play(&mut self, sound: impl Into<SoundHandle>) -> SoundHandle {
+        let handle = sound.into();
+        self.renderer.guard().add_sound(handle.clone());
+        handle
+    }
+
+    /// Return whether all sounds are finished or not.
+    #[inline]
+    pub fn is_finished(&self) -> bool {
+        !self.renderer.guard().has_sounds()
+    }
+
+    /// Fill the given buffer with audio samples. When the buffer is processed,
+    /// no other samples are rendered before the next call to this function.
+    pub fn fill_buffer(&self, sample_rate: u32, frames: &mut [Frame]) {
+        for frame in frames {
+            *frame = self.renderer.guard().next_frame(sample_rate);
+        }
     }
 }

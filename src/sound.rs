@@ -563,11 +563,17 @@ impl Sound {
 #[derive(Debug, Clone)]
 pub struct SoundHandle(Arc<Mutex<Sound>>);
 
+impl From<Sound> for SoundHandle {
+    fn from(sound: Sound) -> Self {
+        Self::new(sound)
+    }
+}
+
 impl SoundHandle {
     /// Create a new [`SoundHandle`] from a [`Sound`].
     #[inline]
-    pub fn new(sound: Sound) -> Self {
-        Self(Arc::new(Mutex::new(sound)))
+    pub fn new(sound: impl Into<Sound>) -> Self {
+        Self(Arc::new(Mutex::new(sound.into())))
     }
 
     /// Get a lock on the underlying [`Sound`].
