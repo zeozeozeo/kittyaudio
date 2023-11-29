@@ -30,6 +30,7 @@ use symphonia::core::{
 
 /// Represents an audio sample. Stores a left and right channel.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Frame {
     /// Left channel value. Float.
     pub left: f32,
@@ -145,6 +146,7 @@ impl Neg for Frame {
 
 /// Specifies how quickly the sound is played.
 #[derive(Debug, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum PlaybackRate {
     /// The sound is playing at a speed factor of the original sample rate.
     ///

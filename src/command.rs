@@ -320,6 +320,7 @@ fn sine_in_out(t: f32) -> f32 {
 
 /// Specifies what easing function to use.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Easing {
     /// Linear easing.
     #[default]
@@ -432,6 +433,7 @@ impl Easing {
 
 /// Specifies what change to make to a [`crate::Sound`]. Used with [`Command`].
 #[derive(Debug, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Change {
     /// Change volume value.
     Volume(f32),
@@ -449,6 +451,7 @@ pub enum Change {
 /// A command that specifies an action that is applied on a [`crate::Sound`]
 /// with an optional tween.
 #[derive(Debug, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Command {
     /// What variable to change.
     pub change: Change,
@@ -516,6 +519,7 @@ impl Tweenable for usize {
 /// A parameter (used in [`crate::Sound`]) that implements tweening the
 /// underlying value.
 #[derive(Debug, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Parameter<T: Tweenable> {
     /// Last tweened value. If no commands are running, this is the same as
     /// the previous value.
