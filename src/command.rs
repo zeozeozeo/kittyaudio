@@ -543,7 +543,7 @@ impl<T: Tweenable> Parameter<T> {
 
     /// Stop any tweening.
     #[inline(always)]
-    pub fn stop(&mut self) {
+    pub fn stop_tween(&mut self) {
         self.base_value = self.value;
     }
 

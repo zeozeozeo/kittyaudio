@@ -619,11 +619,11 @@ impl Sound {
             // if the command has finished, stop the tween
             if -command.start_after >= command.duration {
                 match command.change {
-                    Change::Volume(_) => self.volume.stop(),
-                    Change::Index(_) => self.index.stop(),
-                    Change::Position(_) => self.index.stop(),
+                    Change::Volume(_) => self.volume.stop_tween(),
+                    Change::Index(_) => self.index.stop_tween(),
+                    Change::Position(_) => self.index.stop_tween(),
                     Change::Pause(_) => (),
-                    Change::PlaybackRate(_) => self.playback_rate.stop(),
+                    Change::PlaybackRate(_) => self.playback_rate.stop_tween(),
                 }
             }
         }
