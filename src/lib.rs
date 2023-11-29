@@ -4,6 +4,7 @@
 #[cfg(feature = "playback")]
 mod backend;
 
+mod command;
 mod error;
 mod mixer;
 mod resampler;
@@ -12,6 +13,7 @@ mod sound;
 #[cfg(feature = "playback")]
 pub use backend::*;
 
+pub use command::*;
 pub use error::*;
 pub use mixer::*;
 pub use resampler::*;

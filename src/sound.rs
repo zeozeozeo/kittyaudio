@@ -1,4 +1,4 @@
-use crate::resampler::Resampler;
+use crate::{lerp_f64, Change, Command, Parameter, Resampler, Tweenable};
 use std::ops::AddAssign;
 use std::ops::{Add, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
@@ -197,27 +197,40 @@ impl From<f64> for PlaybackRate {
     }
 }
 
+impl Tweenable for PlaybackRate {
+    fn interpolate(a: Self, b: Self, t: f32) -> Self {
+        match a {
+            Self::Factor(factor) => Self::Factor(lerp_f64(factor, b.as_factor(), t as f64)),
+            Self::Semitones(semitones) => {
+                Self::Semitones(lerp_f64(semitones, b.as_semitones(), t as f64))
+            }
+        }
+    }
+}
+
 /// Audio data stored in memory. This type can be cheaply cloned, as the
 /// audio data is shared between all clones.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Sound {
     /// Sample rate of the sound.
     sample_rate: u32,
-    /// Audio data. Not mutable.
+    /// Audio data. Not mutable. Shared between all clones.
     pub frames: Arc<[Frame]>,
     /// Whether the sound is paused.
     pub paused: bool,
     /// The current playback position in frames.
-    index: usize,
+    index: Parameter<usize>,
     /// The resampler used to resample the audio data.
     resampler: Resampler,
     /// The current playback rate of the sound. See [`PlaybackRate`] for more
     /// details.
-    playback_rate: PlaybackRate,
+    playback_rate: Parameter<PlaybackRate>,
     /// Fractional position between samples. Always in the range of 0-1.
     fractional_position: f64,
     /// Current volume of the samples pushed to the resampler.
-    volume: f32,
+    volume: Parameter<f32>,
+    /// All unfinished commands.
+    commands: Vec<Command>,
 }
 
 impl Default for Sound {
@@ -226,11 +239,12 @@ impl Default for Sound {
             sample_rate: 0,
             frames: Arc::new([]),
             paused: false,
-            index: 0,
+            index: Parameter::new(0),
             resampler: Resampler::new(0),
-            playback_rate: PlaybackRate::Factor(1.0),
+            playback_rate: Parameter::new(PlaybackRate::Factor(1.0)),
             fractional_position: 0.0,
-            volume: 1.0,
+            volume: Parameter::new(1.0),
+            commands: vec![],
         };
 
         // fill the resampler with 3 audio frames so the playback starts
@@ -433,10 +447,10 @@ impl Sound {
 
     /// Push the current frame (pointed by `self.index`) to the resampler.
     pub fn push_frame_to_resampler(&mut self) {
-        let frame_index = self.index; // copy to stack
+        let frame_index = self.index.value;
         self.resampler.push_frame(
             // push silence if index is out of the range
-            *self.frames.get(frame_index).unwrap_or(&Frame::ZERO) * self.volume,
+            *self.frames.get(frame_index).unwrap_or(&Frame::ZERO) * self.volume.value,
             frame_index,
         );
     }
@@ -444,22 +458,22 @@ impl Sound {
     /// Return whether the sound is playing backward.
     #[inline]
     pub fn is_playing_backwards(&mut self) -> bool {
-        self.playback_rate.as_factor().is_sign_negative()
+        self.playback_rate.value.as_factor().is_sign_negative()
     }
 
     /// Increment/decrement the position value in the sound, pushing the
     /// previous sound frame to the resampler.
     pub fn update_position(&mut self) {
         if self.paused {
-            self.resampler.push_frame(Frame::ZERO, self.index);
+            self.resampler.push_frame(Frame::ZERO, self.index.value);
         } else {
             self.push_frame_to_resampler();
 
             // increment/decrement index
             if self.is_playing_backwards() {
-                self.index -= 1;
+                self.index.value -= 1;
             } else {
-                self.index += 1
+                self.index.value += 1
             }
         }
     }
@@ -467,7 +481,7 @@ impl Sound {
     /// Return whether the sound has finished playback.
     #[inline]
     pub fn finished(&self) -> bool {
-        self.index >= self.frames.len()
+        self.index.value >= self.frames.len()
     }
 
     /// Render the next frame. If the sound has ended, return `Frame::ZERO`.
@@ -477,12 +491,17 @@ impl Sound {
             return Frame::ZERO;
         }
 
+        // update commands
+        if !self.commands.is_empty() {
+            self.update_commands(1.0 / sample_rate as f64);
+        }
+
         // get resampled frame
         let frame = self.resampler.get(self.fractional_position as f32);
 
         // increment fractional position
-        self.fractional_position +=
-            (self.sample_rate as f64 / sample_rate as f64) * self.playback_rate.as_factor().abs();
+        self.fractional_position += (self.sample_rate as f64 / sample_rate as f64)
+            * self.playback_rate.value.as_factor().abs();
 
         // step the corrent amount of samples forward/backward
         while self.fractional_position >= 1.0 {
@@ -496,30 +515,30 @@ impl Sound {
     /// Reset the sound to the beginning.
     #[inline]
     pub fn reset(&mut self) {
-        self.index = 0;
+        self.index.value = 0;
     }
 
     /// Set the playback rate of the sound. See [`PlaybackRate`] for more
     /// details. Returns the previous playback rate.
     #[inline]
     pub fn set_playback_rate(&mut self, playback_rate: PlaybackRate) -> PlaybackRate {
-        let prev_playback_rate = self.playback_rate;
-        self.playback_rate = playback_rate;
+        let prev_playback_rate = self.playback_rate.value;
+        self.playback_rate.start_tween(playback_rate);
         prev_playback_rate
     }
 
     /// Set the current volume. Return the previous volume value.
     #[inline]
     pub fn set_volume(&mut self, volume: f32) -> f32 {
-        let prev_volume = self.volume;
-        self.volume = volume;
+        let prev_volume = self.volume.value;
+        self.volume.start_tween(volume);
         prev_volume
     }
 
     /// Seek to an index in the source data.
     #[inline]
     pub fn seek_to_index(&mut self, index: usize) {
-        self.index = index;
+        self.index.start_tween(index);
 
         // if the sound is playing, push this frame to the resampler so it
         // doesn't get skipped
@@ -537,7 +556,7 @@ impl Sound {
     /// Seek by a specified amount of seconds.
     #[inline]
     pub fn seek_by(&mut self, seconds: f64) {
-        let cur_position = self.index as f64 / self.sample_rate as f64;
+        let cur_position = self.index.value as f64 / self.sample_rate as f64;
         let position = cur_position + seconds;
         let index = (position * self.sample_rate as f64) as usize;
         self.seek_to_index(index);
@@ -553,7 +572,64 @@ impl Sound {
     /// Reverse the playback rate so the sound plays backwards.
     #[inline]
     pub fn reverse(&mut self) {
-        self.playback_rate = self.playback_rate.reverse();
+        self.playback_rate
+            .start_tween(self.playback_rate.value.reverse())
+    }
+
+    /// Add a command to the sound. See [`Command`] for more details.
+    #[inline]
+    pub fn add_command(&mut self, command: Command) {
+        self.commands.push(command)
+    }
+
+    fn update_commands(&mut self, dt: f64) {
+        for command in &mut self.commands {
+            if command.start_after <= 0.0 {
+                // start_after will be negative, so this acts as subtraction
+                let elapsed = -command.start_after;
+
+                // compute value with easing
+                let t = command.value((elapsed / command.duration) as f32);
+
+                // apply change
+                match command.change {
+                    Change::Volume(vol) => self.volume.update(vol, t),
+                    Change::Index(index) => {
+                        self.index.update(index, t);
+                        // TODO: push frame to resampler
+                    }
+                    Change::Position(position) => {
+                        let index = position * self.sample_rate as f64;
+                        self.index.update(index as usize, t);
+                        // TODO: push frame to resampler
+                    }
+                    Change::Pause(pause) => {
+                        if t >= 0.5 {
+                            self.paused = pause;
+                        }
+                    }
+                    Change::PlaybackRate(rate) => self.playback_rate.update(rate, t),
+                }
+            }
+
+            // if start_after is negative, it measures the elapsed time the command
+            // has been running
+            command.start_after -= dt;
+
+            // if the command has finished, stop the tween
+            if -command.start_after >= command.duration {
+                match command.change {
+                    Change::Volume(_) => self.volume.stop(),
+                    Change::Index(_) => self.index.stop(),
+                    Change::Position(_) => self.index.stop(),
+                    Change::Pause(_) => (),
+                    Change::PlaybackRate(_) => self.playback_rate.stop(),
+                }
+            }
+        }
+
+        // only keep commands that are running
+        self.commands.retain(|c| -c.start_after < c.duration);
     }
 }
 
@@ -624,19 +700,19 @@ impl SoundHandle {
     /// Return the current playback rate.
     #[inline]
     pub fn playback_rate(&self) -> PlaybackRate {
-        self.guard().playback_rate
+        self.guard().playback_rate.value
     }
 
     /// Return the current index in the source sound data.
     #[inline]
     pub fn index(&self) -> usize {
-        self.guard().index
+        self.guard().index.value
     }
 
     /// Return the current volume of the sound.
     #[inline]
     pub fn volume(&self) -> f32 {
-        self.guard().volume
+        self.guard().volume.value
     }
 
     /// Set the current volume. Return the previous volume value.
@@ -680,5 +756,11 @@ impl SoundHandle {
     #[inline]
     pub fn reverse(&self) {
         self.guard().reverse();
+    }
+
+    /// Add a command to the sound. See [`Command`] for more details.
+    #[inline]
+    pub fn add_command(&self, command: Command) {
+        self.guard().add_command(command);
     }
 }
