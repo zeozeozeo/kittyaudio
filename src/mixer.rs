@@ -21,6 +21,19 @@ pub struct DefaultRenderer {
     pub sounds: Vec<SoundHandle>,
 }
 
+impl DefaultRenderer {
+    /// Start playing a sound. Accepts a [`SoundHandle`].
+    #[inline]
+    pub fn add_sound(&mut self, sound: SoundHandle) {
+        self.sounds.push(sound);
+    }
+
+    /// Return whether the renderer has any playing sounds.
+    pub fn has_sounds(&self) -> bool {
+        !self.sounds.is_empty()
+    }
+}
+
 impl Renderer for DefaultRenderer {
     fn next_frame(&mut self, sample_rate: u32) -> Frame {
         // mix samples from all playing sounds
@@ -39,6 +52,12 @@ impl Renderer for DefaultRenderer {
 /// Wraps [`Renderer`] so it can be shared between threads.
 #[derive(Clone)]
 pub struct RendererHandle<R: Renderer>(Arc<Mutex<R>>);
+
+impl From<DefaultRenderer> for RendererHandle<DefaultRenderer> {
+    fn from(val: DefaultRenderer) -> Self {
+        RendererHandle::new(val)
+    }
+}
 
 impl<R: Renderer> RendererHandle<R> {
     /// Create a new renderer handle.
@@ -74,7 +93,7 @@ impl Mixer {
     /// Create a new audio mixer.
     pub fn new() -> Self {
         Self {
-            renderer: RendererHandle::new(DefaultRenderer::default()),
+            renderer: DefaultRenderer::default().into(),
             #[cfg(feature = "playback")]
             backend: Arc::new(Mutex::new(Backend::new())),
         }
@@ -94,7 +113,7 @@ impl Mixer {
     #[inline]
     pub fn play(&mut self, sound: Sound) -> SoundHandle {
         let handle = SoundHandle::new(sound);
-        self.renderer.guard().sounds.push(handle.clone());
+        self.renderer.guard().add_sound(handle.clone());
         handle
     }
 
@@ -140,7 +159,6 @@ impl Mixer {
     /// Return whether all sounds are finished or not.
     #[inline]
     pub fn is_finished(&self) -> bool {
-        // this vector is updated every audio frame to GC sounds that are not playing
-        self.renderer.guard().sounds.is_empty()
+        !self.renderer.guard().has_sounds()
     }
 }
