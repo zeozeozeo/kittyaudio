@@ -165,6 +165,12 @@ impl Mixer {
     pub fn is_finished(&self) -> bool {
         !self.renderer.guard().has_sounds()
     }
+
+    /// Render the next audio frame. See [`DefaultRenderer`] for details.
+    #[inline]
+    pub fn next_frame(&self, sample_rate: u32) -> Frame {
+        self.renderer.guard().next_frame(sample_rate)
+    }
 }
 
 /// A mixer for recording audio.
@@ -214,5 +220,11 @@ impl RecordMixer {
         for frame in frames {
             *frame = self.renderer.guard().next_frame(sample_rate);
         }
+    }
+
+    /// Render the next audio frame. See [`DefaultRenderer`] for details.
+    #[inline]
+    pub fn next_frame(&self, sample_rate: u32) -> Frame {
+        self.renderer.guard().next_frame(sample_rate)
     }
 }
