@@ -7,6 +7,7 @@ fn main() {
     mixer.init();
 
     let sound = mixer.play(sound);
+    sound.seek_by(5.0);
 
     // after the sound has played for 1 second, gradually decrease volume
     // in the duration of 5 seconds
