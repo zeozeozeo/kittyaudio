@@ -1,4 +1,8 @@
-use crate::{Backend, Device, Frame, Sound, SoundHandle, StreamSettings};
+use crate::{Frame, Sound, SoundHandle};
+
+#[cfg(feature = "playback")]
+use crate::{Backend, Device, StreamSettings};
+
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 /// The audio renderer trait. Can be used to make custom audio renderers.
@@ -56,6 +60,7 @@ pub struct Mixer {
     /// Handle to the underlying audio renderer.
     pub renderer: RendererHandle<DefaultRenderer>,
     /// Handle to the underlying audio backend.
+    #[cfg(feature = "playback")]
     pub backend: Arc<Mutex<Backend>>,
 }
 
@@ -70,11 +75,13 @@ impl Mixer {
     pub fn new() -> Self {
         Self {
             renderer: RendererHandle::new(DefaultRenderer::default()),
+            #[cfg(feature = "playback")]
             backend: Arc::new(Mutex::new(Backend::new())),
         }
     }
 
     /// Get a lock on the underlying backend.
+    #[cfg(feature = "playback")]
     #[inline(always)]
     pub fn backend(&self) -> MutexGuard<'_, Backend> {
         self.backend.lock().unwrap_or_else(PoisonError::into_inner)
@@ -93,12 +100,14 @@ impl Mixer {
 
     /// Handle stream errors.
     #[inline]
+    #[cfg(feature = "playback")]
     pub fn handle_errors(&mut self, err_fn: impl FnMut(cpal::StreamError)) {
         self.backend().handle_errors(err_fn);
     }
 
     /// Start the audio thread with default backend settings.
     #[inline]
+    #[cfg(feature = "playback")]
     pub fn init(&self) {
         self.init_ex(Device::Default, StreamSettings::default());
     }
@@ -108,6 +117,7 @@ impl Mixer {
     /// * `device`: The audio device to use. Set to `Device::Default` for defaults.
     /// * `stream_config`: The audio stream configuration. Set to [`None`] for defaults.
     /// * `sample_format`: The audio sample format. Set to [`None`] for defaults.
+    #[cfg(feature = "playback")]
     pub fn init_ex(&self, device: Device, settings: StreamSettings) {
         let backend = self.backend.clone();
         let renderer = self.renderer.clone();

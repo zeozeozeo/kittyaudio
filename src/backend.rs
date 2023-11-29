@@ -6,13 +6,10 @@ use std::time::Duration;
 use crate::KaError;
 use crate::Renderer;
 use crate::RendererHandle;
-use cpal::traits::DeviceTrait;
-use cpal::traits::HostTrait;
-use cpal::traits::StreamTrait;
-use cpal::FromSample;
-use cpal::SampleFormat;
-use cpal::SizedSample;
-use cpal::StreamConfig;
+use cpal::{
+    traits::{DeviceTrait, HostTrait, StreamTrait},
+    FromSample, SampleFormat, SizedSample, StreamConfig,
+};
 
 /// Specifies what device [`cpal`] should use.
 ///
@@ -86,7 +83,7 @@ pub struct StreamSettings {
     pub sample_rate: Option<u32>,
     /// Audio buffer size (in samples). If [`None`], [`cpal`] provides the default value.
     pub buffer_size: Option<u32>,
-    /// Amount of channels. If [`None`], [`cpal`] provides the default value.
+    /// Stream sample format. If [`None`], [`cpal`] provides the default value.
     pub sample_format: Option<SampleFormat>,
     /// Whether to check the stream for device changes/disconnections.
     pub check_stream: bool,

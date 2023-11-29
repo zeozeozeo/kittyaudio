@@ -7,16 +7,22 @@ pub enum KaError {
     #[error("failed to get output device")]
     NoOutputDevice,
     #[error("failed to get output devices: {0}")]
+    #[cfg(feature = "playback")]
     DeviceError(#[from] cpal::DevicesError),
     #[error("failed to retrieve default stream config: {0}")]
+    #[cfg(feature = "playback")]
     DefaultStreamConfigError(#[from] cpal::DefaultStreamConfigError),
     #[error("unsupported sample format {0}")]
+    #[cfg(feature = "playback")]
     UnsupportedSampleFormat(cpal::SampleFormat),
     #[error("failed to build stream: {0}")]
+    #[cfg(feature = "playback")]
     BuildStreamError(#[from] cpal::BuildStreamError),
     #[error("failed to play stream: {0}")]
+    #[cfg(feature = "playback")]
     PlayStreamError(#[from] cpal::PlayStreamError),
     #[error("an error occured on stream: {0}")]
+    #[cfg(feature = "playback")]
     StreamError(#[from] cpal::StreamError),
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),

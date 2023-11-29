@@ -14,11 +14,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cpal = "0.15.2"
+cpal = { version = "0.15.2", optional = true }
 log = "0.4.20"
 symphonia = { version = "0.5.3", features = ["all"], optional = true }
 thiserror = "1.0.50"
 
 [features]
-default = ["use-symphonia"]
-use-symphonia = ["symphonia"]
+default = ["use-symphonia", "playback"]
+use-symphonia = ["symphonia"] # Audio decoding support with [`symphonia`].
+playback = ["cpal"]           # Audio playback support with [`cpal`].
+                              # Disable this if you want to use kittyaudio purely as an audio library.
