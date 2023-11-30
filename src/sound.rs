@@ -4,22 +4,22 @@ use std::ops::{Add, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
 
-#[cfg(feature = "use-symphonia")]
+#[cfg(feature = "symphonia")]
 use {crate::KaError, std::io::Cursor};
 
-/// Includes a sound in the executable. The `use-symphonia` feature must be
+/// Includes a sound in the executable. The `symphonia` feature must be
 /// enabled for this macro to exist.
 ///
 /// This is a shorthand for `Sound::from_cursor(Cursor::new(include_bytes!(path)))`.
 #[macro_export]
-#[cfg(feature = "use-symphonia")]
+#[cfg(feature = "symphonia")]
 macro_rules! include_sound {
     ($path:expr) => {
         $crate::Sound::from_cursor(::std::io::Cursor::new(include_bytes!($path)))
     };
 }
 
-#[cfg(feature = "use-symphonia")]
+#[cfg(feature = "symphonia")]
 use symphonia::core::{
     audio::Signal,
     audio::{AudioBuffer, AudioBufferRef},
@@ -260,7 +260,7 @@ impl Default for Sound {
 }
 
 /// Helper function to convert Symphonia's [`AudioBufferRef`] to a vector of [`Frame`]s.
-#[cfg(feature = "use-symphonia")]
+#[cfg(feature = "symphonia")]
 fn load_frames_from_buffer_ref(buffer: &AudioBufferRef) -> Result<Vec<Frame>, KaError> {
     match buffer {
         AudioBufferRef::U8(buffer) => load_frames_from_buffer(buffer),
@@ -277,7 +277,7 @@ fn load_frames_from_buffer_ref(buffer: &AudioBufferRef) -> Result<Vec<Frame>, Ka
 }
 
 /// Convert an [`AudioBuffer`] into a [`Vec`] of [`Frame`]s.
-#[cfg(feature = "use-symphonia")]
+#[cfg(feature = "symphonia")]
 fn load_frames_from_buffer<S: Sample>(buffer: &AudioBuffer<S>) -> Result<Vec<Frame>, KaError>
 where
     f32: FromSample<S>,
@@ -302,8 +302,8 @@ where
 impl Sound {
     /// Make a [`Sound`] from [`symphonia`]'s [`Box`]'ed [`MediaSource`].
     ///
-    /// Required features: `use-symphonia`
-    #[cfg(feature = "use-symphonia")]
+    /// Required features: `symphonia`
+    #[cfg(feature = "symphonia")]
     pub fn from_boxed_media_source(media_source: Box<dyn MediaSource>) -> Result<Self, KaError> {
         use std::io::ErrorKind::UnexpectedEof;
         use symphonia::core::codecs::DecoderOptions;
@@ -381,8 +381,8 @@ impl Sound {
 
     /// Make a [`Sound`] from [`symphonia`]'s [`MediaSource`].
     ///
-    /// Required features: `use-symphonia`
-    #[cfg(feature = "use-symphonia")]
+    /// Required features: `symphonia`
+    #[cfg(feature = "symphonia")]
     #[inline]
     pub fn from_media_source(media_source: impl MediaSource + 'static) -> Result<Self, KaError> {
         Self::from_boxed_media_source(Box::new(media_source))
@@ -390,8 +390,8 @@ impl Sound {
 
     /// Make a [`Sound`] from a [`Cursor`] of bytes. Uses [`symphonia`] to decode audio.
     ///
-    /// Required features: `use-symphonia`
-    #[cfg(feature = "use-symphonia")]
+    /// Required features: `symphonia`
+    #[cfg(feature = "symphonia")]
     #[inline]
     pub fn from_cursor<T: AsRef<[u8]> + Send + Sync + 'static>(
         cursor: Cursor<T>,
@@ -401,8 +401,8 @@ impl Sound {
 
     /// Make a [`Sound`] from a file path. Uses [`symphonia`] to decode audio.
     ///
-    /// Required features: `use-symphonia`
-    #[cfg(feature = "use-symphonia")]
+    /// Required features: `symphonia`
+    #[cfg(feature = "symphonia")]
     #[inline]
     pub fn from_path(path: impl AsRef<std::path::Path>) -> Result<Self, KaError> {
         Self::from_media_source(std::fs::File::open(path)?)
@@ -410,8 +410,8 @@ impl Sound {
 
     /// Make a [`Sound`] from a [`Vec`] of bytes ([`u8`]). Uses [`symphonia`] to decode audio.
     ///
-    /// Required features: `use-symphonia`
-    #[cfg(feature = "use-symphonia")]
+    /// Required features: `symphonia`
+    #[cfg(feature = "symphonia")]
     #[inline]
     pub fn from_bytes(bytes: Vec<u8>) -> Result<Self, KaError> {
         Self::from_cursor(Cursor::new(bytes))

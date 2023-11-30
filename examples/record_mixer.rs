@@ -1,5 +1,5 @@
 //! Demonstrates using a custom mixer for recording audio.
-//! This example does NOT require the `playback` feature.
+//! This example does NOT require the `cpal` feature.
 
 use std::time::Instant;
 

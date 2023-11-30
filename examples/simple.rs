@@ -1,6 +1,6 @@
 //! Simple example of playing a sound with the [`kittyaudio`] library.
 //!
-//! This example requires the `use-symphonia` feature.
+//! This example requires the `symphonia` feature.
 
 use kittyaudio::{include_sound, Mixer};
 

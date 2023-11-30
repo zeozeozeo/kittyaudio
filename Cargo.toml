@@ -22,7 +22,7 @@ symphonia = { version = "0.5.3", features = ["all"], optional = true }
 thiserror = "1.0.50"
 
 [features]
-default = ["use-symphonia", "playback"]
-use-symphonia = ["symphonia"] # Audio decoding support with [`symphonia`].
-playback = ["cpal"]           # Audio playback support with [`cpal`].
-                              # Disable this if you want to use kittyaudio purely as an audio library.
+default = ["symphonia", "cpal"]
+# symphonia feature - Audio decoding support with [`symphonia`].
+# cpal feature - Audio playback support with [`cpal`].
+#                Disable this if you want to use kittyaudio purely as an audio library.

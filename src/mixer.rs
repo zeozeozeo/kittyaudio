@@ -3,7 +3,7 @@ use crate::{Frame, SoundHandle};
 #[allow(unused_imports)] // for comments
 use crate::Sound;
 
-#[cfg(feature = "playback")]
+#[cfg(feature = "cpal")]
 use crate::{Backend, Device, StreamSettings};
 
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
@@ -83,7 +83,7 @@ pub struct Mixer {
     /// Handle to the default audio renderer.
     pub renderer: RendererHandle<DefaultRenderer>,
     /// Handle to the underlying audio backend.
-    #[cfg(feature = "playback")]
+    #[cfg(feature = "cpal")]
     pub backend: Arc<Mutex<Backend>>,
 }
 
@@ -98,13 +98,13 @@ impl Mixer {
     pub fn new() -> Self {
         Self {
             renderer: DefaultRenderer::default().into(),
-            #[cfg(feature = "playback")]
+            #[cfg(feature = "cpal")]
             backend: Arc::new(Mutex::new(Backend::new())),
         }
     }
 
     /// Get a lock on the underlying backend.
-    #[cfg(feature = "playback")]
+    #[cfg(feature = "cpal")]
     #[inline(always)]
     pub fn backend(&self) -> MutexGuard<'_, Backend> {
         self.backend.lock().unwrap_or_else(PoisonError::into_inner)
@@ -123,14 +123,14 @@ impl Mixer {
 
     /// Handle stream errors.
     #[inline]
-    #[cfg(feature = "playback")]
+    #[cfg(feature = "cpal")]
     pub fn handle_errors(&mut self, err_fn: impl FnMut(cpal::StreamError)) {
         self.backend().handle_errors(err_fn);
     }
 
     /// Start the audio thread with default backend settings.
     #[inline]
-    #[cfg(feature = "playback")]
+    #[cfg(feature = "cpal")]
     pub fn init(&self) {
         self.init_ex(Device::Default, StreamSettings::default());
     }
@@ -140,7 +140,7 @@ impl Mixer {
     /// * `device`: The audio device to use. Set to `Device::Default` for defaults.
     /// * `stream_config`: The audio stream configuration. Set to [`None`] for defaults.
     /// * `sample_format`: The audio sample format. Set to [`None`] for defaults.
-    #[cfg(feature = "playback")]
+    #[cfg(feature = "cpal")]
     pub fn init_ex(&self, device: Device, settings: StreamSettings) {
         let backend = self.backend.clone();
         let renderer = self.renderer.clone();

@@ -48,7 +48,7 @@
 
 #![warn(missing_docs)] // warn on missing function docs
 
-#[cfg(feature = "playback")]
+#[cfg(feature = "cpal")]
 mod backend;
 
 mod command;
@@ -57,7 +57,7 @@ mod mixer;
 mod resampler;
 mod sound;
 
-#[cfg(feature = "playback")]
+#[cfg(feature = "cpal")]
 pub use backend::*;
 
 pub use command::*;
@@ -67,8 +67,8 @@ pub use resampler::*;
 pub use sound::*;
 
 // Re-export the cpal and symphonia crate
-#[cfg(feature = "playback")]
+#[cfg(feature = "cpal")]
 pub use cpal;
 
-#[cfg(feature = "use-symphonia")]
+#[cfg(feature = "symphonia")]
 pub use symphonia;
