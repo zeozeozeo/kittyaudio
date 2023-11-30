@@ -26,7 +26,7 @@ fn main() {
     let mut mixer = Mixer::new();
     mixer.init(); // use init_ex to specify settings
 
-    let playing_sound = mixer.play();
+    let playing_sound = mixer.play(sound);
     playing_sound.set_volume(0.5); // decrease volume
 
     mixer.wait(); // wait for all sounds to finish
