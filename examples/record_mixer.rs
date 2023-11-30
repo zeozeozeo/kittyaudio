@@ -16,7 +16,7 @@ fn main() {
     let start = Instant::now();
 
     // make a buffer where we will store the samples
-    let mut buffer = [Frame::default(); 4096]; // 32 kib
+    let mut buffer = [Frame::ZERO; 4096]; // 32 kib
 
     while !mixer.is_finished() {
         mixer.fill_buffer(44100, &mut buffer);
