@@ -14,6 +14,7 @@ fn main() {
 
     // start the mixer with the default device and 0 buffer size.
     // see the Device struct for more details.
+    println!("available devices: {:?}", kittyaudio::device_names());
     mixer.init_ex(Device::Default, settings);
 
     let sound = mixer.play(sound);
