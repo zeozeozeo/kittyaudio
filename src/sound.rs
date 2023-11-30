@@ -517,7 +517,7 @@ impl Sound {
     /// Reset the sound to the beginning.
     #[inline]
     pub fn reset(&mut self) {
-        self.index.value = 0;
+        self.seek_to_index(0);
     }
 
     /// Set the playback rate of the sound. See [`PlaybackRate`] for more
