@@ -18,7 +18,7 @@ fn main() {
     mixer.init(); // use init_ex to specify settings
 
     // play the sound
-    mixer.play(sound.clone());
+    mixer.play(sound);
 
     // wait for all sounds to finish (use mixer.is_finished() to check for that)
     mixer.wait();
