@@ -1,6 +1,6 @@
 use crate::{lerp_f64, Change, Command, Parameter, Resampler, Tweenable};
-use std::ops::AddAssign;
 use std::ops::{Add, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use std::ops::{AddAssign, RangeInclusive};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
 
@@ -210,6 +210,62 @@ impl Tweenable for PlaybackRate {
     }
 }
 
+/// Specifies a loop region.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub(crate) struct LoopPoints {
+    /// Start of the loop as an index in the source data.
+    pub start: usize,
+    /// End of the loop as an index in the source data.
+    pub end: usize,
+}
+
+impl LoopPoints {
+    /// No loop.
+    const NO_LOOP: Self = Self {
+        start: 0,
+        end: usize::MAX,
+    };
+
+    /// Make [`LoopPoints`] from an index range.
+    #[inline]
+    pub const fn from_range(range: RangeInclusive<usize>) -> Self {
+        Self {
+            start: *range.start(),
+            end: *range.end(),
+        }
+    }
+
+    /// Make [`LoopPoints`] from a seconds range.
+    #[inline]
+    pub fn from_range_secs(range: RangeInclusive<f64>, sample_rate: u32) -> Self {
+        Self {
+            start: (range.start() * sample_rate as f64) as usize,
+            end: (range.end() * sample_rate as f64) as usize,
+        }
+    }
+
+    /// Get start value in seconds.
+    #[inline]
+    fn start_secs(&self, sample_rate: u32) -> f64 {
+        self.start as f64 / sample_rate as f64
+    }
+
+    /// Get end value in seconds.
+    #[inline]
+    fn end_secs(&self, sample_rate: u32) -> f64 {
+        self.end as f64 / sample_rate as f64
+    }
+}
+
+impl Tweenable for LoopPoints {
+    fn interpolate(a: Self, b: Self, t: f32) -> Self {
+        Self {
+            start: lerp_f64(a.start as f64, b.start as f64, t as f64) as usize,
+            end: lerp_f64(a.end as f64, b.end as f64, t as f64) as usize,
+        }
+    }
+}
+
 /// Audio data stored in memory. This type can be cheaply cloned, as the
 /// audio data is shared between all clones.
 #[derive(Debug, Clone, PartialEq)]
@@ -233,6 +289,10 @@ pub struct Sound {
     volume: Parameter<f32>,
     /// All unfinished commands.
     commands: Vec<Command>,
+    /// Current two loop points.
+    loop_points: Parameter<LoopPoints>,
+    /// Whether looping is enabled.
+    pub loop_enabled: bool,
 }
 
 impl Default for Sound {
@@ -247,6 +307,8 @@ impl Default for Sound {
             fractional_position: 0.0,
             volume: Parameter::new(1.0),
             commands: vec![],
+            loop_points: Parameter::new(LoopPoints::NO_LOOP),
+            loop_enabled: false,
         };
 
         // fill the resampler with 3 audio frames so the playback starts
@@ -295,7 +357,7 @@ where
             .zip(buffer.chan(1).iter())
             .map(|(left, right)| Frame::new((*left).into_sample(), (*right).into_sample()))
             .collect()),
-        _ => Err(KaError::UnsupportedNumberOfChannels(num_channels as _)),
+        _ => Err(KaError::UnsupportedNumberOfChannels(num_channels as u32)),
     }
 }
 
@@ -493,6 +555,10 @@ impl Sound {
             return Frame::ZERO;
         }
 
+        if self.loop_enabled {
+            self.update_loop(self.loop_points.value.start, self.loop_points.value.end);
+        }
+
         // update commands
         if !self.commands.is_empty() {
             self.update_commands(1.0 / sample_rate as f64);
@@ -514,6 +580,18 @@ impl Sound {
         frame
     }
 
+    #[inline(always)]
+    fn update_loop(&mut self, start: usize, end: usize) {
+        let index = self.index.value;
+        if self.is_playing_backwards() {
+            if index <= start {
+                self.seek_to_index(end);
+            }
+        } else if index >= end {
+            self.seek_to_index(start);
+        }
+    }
+
     /// Reset the sound to the beginning.
     #[inline]
     pub fn reset(&mut self) {
@@ -529,12 +607,36 @@ impl Sound {
         prev_playback_rate
     }
 
+    /// Return the current playback rate value. Can be modified with commands.
+    #[inline]
+    pub fn playback_rate(&self) -> PlaybackRate {
+        self.playback_rate.value
+    }
+
+    /// Return the current base playback rate value. Can't be modified with commands.
+    #[inline]
+    pub fn base_playback_rate(&self) -> PlaybackRate {
+        self.playback_rate.base_value
+    }
+
     /// Set the current volume. Return the previous volume value.
     #[inline]
     pub fn set_volume(&mut self, volume: f32) -> f32 {
         let prev_volume = self.volume.value;
         self.volume.start_tween(volume);
         prev_volume
+    }
+
+    /// Return the current volume value. Can be modified with commands.
+    #[inline]
+    pub fn volume(&self) -> f32 {
+        self.volume.value
+    }
+
+    /// Return the current base volume value. Can't be modified with commands.
+    #[inline]
+    pub fn base_volume(&self) -> f32 {
+        self.volume.base_value
     }
 
     /// Seek to an index in the source data.
@@ -593,10 +695,10 @@ impl Sound {
                 let t = command.value((-command.start_after / command.duration) as f32);
 
                 // apply change
-                match command.change {
-                    Change::Volume(vol) => self.volume.update(vol, t),
+                match &command.change {
+                    Change::Volume(vol) => self.volume.update(*vol, t),
                     Change::Index(index) => {
-                        self.index.update(index, t);
+                        self.index.update(*index, t);
                         // TODO: push frame to resampler
                     }
                     Change::Position(position) => {
@@ -606,10 +708,17 @@ impl Sound {
                     }
                     Change::Pause(pause) => {
                         if t >= 0.5 {
-                            self.paused = pause;
+                            self.paused = *pause;
                         }
                     }
-                    Change::PlaybackRate(rate) => self.playback_rate.update(rate, t),
+                    Change::PlaybackRate(rate) => self.playback_rate.update(*rate, t),
+                    Change::LoopSeconds(range) => self.loop_points.update(
+                        LoopPoints::from_range_secs(range.clone(), self.sample_rate),
+                        t,
+                    ),
+                    Change::LoopIndex(range) => self
+                        .loop_points
+                        .update(LoopPoints::from_range(range.clone()), t),
                 }
             }
 
@@ -625,12 +734,77 @@ impl Sound {
                     Change::Position(_) => self.index.stop_tween(),
                     Change::Pause(_) => (),
                     Change::PlaybackRate(_) => self.playback_rate.stop_tween(),
+                    Change::LoopSeconds(_) | Change::LoopIndex(_) => self.loop_points.stop_tween(),
                 }
             }
         }
 
         // only keep commands that are running
         self.commands.retain(|c| -c.start_after < c.duration);
+    }
+
+    /// Set the loop points as an index in the source data.
+    #[inline]
+    pub fn set_loop_index(&mut self, loop_region: RangeInclusive<usize>) {
+        self.loop_points
+            .start_tween(LoopPoints::from_range(loop_region));
+    }
+
+    /// Set the current loop state (enabled/disabled). Return the previous loop state.
+    #[inline]
+    pub fn set_loop_enabled(&mut self, enabled: bool) -> bool {
+        let prev_enabled = self.loop_enabled;
+        self.loop_enabled = enabled;
+        prev_enabled
+    }
+
+    /// Set the loop points as a position in seconds.
+    #[inline]
+    pub fn set_loop(&mut self, loop_region: RangeInclusive<f64>) {
+        self.loop_points =
+            Parameter::new(LoopPoints::from_range_secs(loop_region, self.sample_rate));
+    }
+
+    /// Return the starting point of the loop as an index in the source data.
+    #[inline]
+    pub fn loop_start(&self) -> usize {
+        self.loop_points.value.start
+    }
+
+    /// Return the ending point of the loop as an index in the source data.
+    #[inline]
+    pub fn loop_end(&self) -> usize {
+        self.loop_points.value.end
+    }
+
+    /// Return the starting point of the loop as seconds.
+    #[inline]
+    pub fn loop_start_secs(&self) -> f64 {
+        self.loop_points.value.start_secs(self.sample_rate)
+    }
+
+    /// Return the ending point of the loop as seconds.
+    #[inline]
+    pub fn loop_end_secs(&self) -> f64 {
+        self.loop_points.value.end_secs(self.sample_rate)
+    }
+
+    /// Return the current index in the source sound data. Can be modified with commands.
+    #[inline]
+    pub fn index(&self) -> usize {
+        self.index.value
+    }
+
+    /// Return the current index in the source sound data. Cannot be modified with commands.
+    #[inline]
+    pub fn base_index(&self) -> usize {
+        self.index.base_value
+    }
+
+    /// Return whether the sound is currently outputting silence.
+    #[inline]
+    pub fn outputting_silence(&self) -> bool {
+        self.resampler.outputting_silence()
     }
 }
 
@@ -646,6 +820,7 @@ impl From<Sound> for SoundHandle {
     }
 }
 
+// TODO: can we generate this with a macro?
 impl SoundHandle {
     /// Create a new [`SoundHandle`] from a [`Sound`].
     #[inline]
@@ -664,7 +839,6 @@ impl SoundHandle {
     pub fn sample_rate(&self) -> u32 {
         self.guard().sample_rate()
     }
-
     /// Return the duration of the sound.
     ///
     /// Returns [`Duration`].
@@ -672,96 +846,151 @@ impl SoundHandle {
     pub fn duration(&self) -> Duration {
         self.guard().duration()
     }
-
     /// Return the duration of the sound in seconds.
     #[inline]
     pub fn duration_seconds(&self) -> f64 {
         self.guard().duration_seconds()
     }
-
+    /// Push the current frame (pointed by `self.index()`) to the resampler.
+    #[inline]
+    pub fn push_frame_to_resampler(&self) {
+        self.guard().push_frame_to_resampler()
+    }
+    /// Return whether the sound is playing backward.
+    #[inline]
+    pub fn is_playing_backwards(&self) -> bool {
+        self.guard().is_playing_backwards()
+    }
+    /// Increment/decrement the position value in the sound,
+    /// pushing the previous sound frame to the resampler.
+    #[inline]
+    pub fn update_position(&self) {
+        self.guard().update_position()
+    }
     /// Return whether the sound has finished playback.
     #[inline]
     pub fn finished(&self) -> bool {
         self.guard().finished()
     }
-
+    /// Render the next frame. If the sound has ended, return `Frame::ZERO`.
+    #[inline]
+    pub fn next_frame(&self, sample_rate: u32) -> Frame {
+        self.guard().next_frame(sample_rate)
+    }
     /// Reset the sound to the beginning.
     #[inline]
     pub fn reset(&self) {
-        self.guard().reset();
+        self.guard().reset()
     }
-
-    /// Set the playback rate of the sound. See [`PlaybackRate`] for more
-    /// details. Returns the previous playback rate.
+    /// Set the playback rate of the sound. See [PlaybackRate] for more details. Returns the previous playback rate.
     #[inline]
     pub fn set_playback_rate(&self, playback_rate: PlaybackRate) -> PlaybackRate {
         self.guard().set_playback_rate(playback_rate)
     }
-
-    /// Return the current playback rate.
+    /// Return the current playback rate value. Can be modified with commands.
     #[inline]
     pub fn playback_rate(&self) -> PlaybackRate {
-        self.guard().playback_rate.value
+        self.guard().playback_rate()
     }
-
-    /// Return the current index in the source sound data.
+    /// Return the current base playback rate value. Can't be modified with commands.
     #[inline]
-    pub fn index(&self) -> usize {
-        self.guard().index.value
+    pub fn base_playback_rate(&self) -> PlaybackRate {
+        self.guard().base_playback_rate()
     }
-
-    /// Return the current volume of the sound.
-    #[inline]
-    pub fn volume(&self) -> f32 {
-        self.guard().volume.value
-    }
-
     /// Set the current volume. Return the previous volume value.
     #[inline]
     pub fn set_volume(&self, volume: f32) -> f32 {
         self.guard().set_volume(volume)
     }
-
+    /// Return the current volume value. Can be modified with commands.
+    #[inline]
+    pub fn volume(&self) -> f32 {
+        self.guard().volume()
+    }
+    /// Return the current base volume value. Can't be modified with commands.
+    #[inline]
+    pub fn base_volume(&self) -> f32 {
+        self.guard().base_volume()
+    }
     /// Seek to an index in the source data.
     #[inline]
     pub fn seek_to_index(&self, index: usize) {
-        self.guard().seek_to_index(index);
+        self.guard().seek_to_index(index)
     }
-
     /// Seek to the end of the sound.
+    #[inline]
     pub fn seek_to_end(&self) {
-        self.guard().seek_to_end();
+        self.guard().seek_to_end()
     }
-
     /// Seek by a specified amount of seconds.
     #[inline]
-    pub fn seek_by(&self, amount: f64) {
-        self.guard().seek_by(amount);
+    pub fn seek_by(&self, seconds: f64) {
+        self.guard().seek_by(seconds)
     }
-
     /// Seek to a specified position in seconds.
     #[inline]
     pub fn seek_to(&self, seconds: f64) {
-        self.guard().seek_to(seconds);
+        self.guard().seek_to(seconds)
     }
-
-    /// Clone the underlying [`Sound`] and return it.
-    ///
-    /// This does not clone the actual sound data!
-    #[inline]
-    pub fn clone_sound(&self) -> Sound {
-        self.guard().clone()
-    }
-
     /// Reverse the playback rate so the sound plays backwards.
     #[inline]
     pub fn reverse(&self) {
-        self.guard().reverse();
+        self.guard().reverse()
     }
-
     /// Add a command to the sound. See [`Command`] for more details.
     #[inline]
     pub fn add_command(&self, command: Command) {
-        self.guard().add_command(command);
+        self.guard().add_command(command)
+    }
+    /// Set the loop points as an index in the source data.
+    #[inline]
+    pub fn set_loop_index(&self, loop_region: RangeInclusive<usize>) {
+        self.guard().set_loop_index(loop_region)
+    }
+    /// Set the current loop state (enabled/disabled). Return the previous loop state.
+    #[inline]
+    pub fn set_loop_enabled(&self, enabled: bool) -> bool {
+        self.guard().set_loop_enabled(enabled)
+    }
+    /// Return the current loop state (enabled/disabled).
+    #[inline]
+    pub fn loop_enabled(&self) -> bool {
+        self.guard().loop_enabled
+    }
+    /// Set the loop points as a position in seconds.
+    #[inline]
+    pub fn set_loop(&self, loop_region: RangeInclusive<f64>) {
+        self.guard().set_loop(loop_region)
+    }
+    /// Return the starting point of the loop as an index in the source data.
+    pub fn loop_start(&self) -> usize {
+        self.guard().loop_start()
+    }
+    /// Return the ending point of the loop as an index in the source data.
+    pub fn loop_end(&self) -> usize {
+        self.guard().loop_end()
+    }
+    /// Return the starting point of the loop as seconds.
+    pub fn loop_start_secs(&self) -> f64 {
+        self.guard().loop_start_secs()
+    }
+    /// Return the ending point of the loop as seconds.
+    pub fn loop_end_secs(&self) -> f64 {
+        self.guard().loop_end_secs()
+    }
+    /// Return the current index in the source sound data. Can be modified with commands.
+    #[inline]
+    pub fn index(&self) -> usize {
+        self.guard().index()
+    }
+    /// Return the current index in the source sound data. Cannot be modified with commands.
+    #[inline]
+    pub fn base_index(&self) -> usize {
+        self.guard().base_index()
+    }
+    /// Return whether the sound is currently outputting silence.
+    #[inline]
+    pub fn outputting_silence(&self) -> bool {
+        self.guard().outputting_silence()
     }
 }

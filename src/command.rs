@@ -1,6 +1,5 @@
-use std::f32::consts::PI;
-
 use crate::PlaybackRate;
+use std::{f32::consts::PI, ops::RangeInclusive};
 
 /// https://github.com/Michaelangel007/easing#the-magic-of-170158
 const C1: f32 = 1.70158;
@@ -433,7 +432,7 @@ impl Easing {
 }
 
 /// Specifies what change to make to a [`crate::Sound`]. Used with [`Command`].
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Change {
     /// Change volume value.
@@ -447,11 +446,15 @@ pub enum Change {
     Index(usize),
     /// Change the position in seconds.
     Position(f64),
+    /// Change the loop points in seconds.
+    LoopSeconds(RangeInclusive<f64>),
+    /// Change the loop points in samples.
+    LoopIndex(RangeInclusive<usize>),
 }
 
 /// A command that specifies an action that is applied on a [`crate::Sound`]
 /// with an optional tween.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Command {
     /// What variable to change.
