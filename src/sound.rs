@@ -580,7 +580,6 @@ impl Sound {
         frame
     }
 
-    #[inline(always)]
     fn update_loop(&mut self, start: usize, end: usize) {
         let index = self.index.value;
         if self.is_playing_backwards() {
