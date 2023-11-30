@@ -49,6 +49,36 @@ impl Device {
                 .ok_or(KaError::NoOutputDevice)?,
         ))
     }
+
+    /// Find the cpal device that matches [`Device`]'s criteries.
+    ///
+    /// If the device could not be found, returns [`KaError::NoOutputDevice`].
+    pub fn cpal_device(self, host: cpal::Host) -> Result<cpal::Device, KaError> {
+        Ok(match self {
+            Device::Default => host
+                .default_output_device()
+                .ok_or(KaError::NoOutputDevice)?,
+            Device::Name(name) => host
+                .output_devices()?
+                .find(|d| device_name(d) == name)
+                .ok_or(KaError::NoOutputDevice)?,
+            Device::Custom(device) => device,
+        })
+    }
+
+    /// Get the supported buffer size for this device.
+    ///
+    /// If the device could not be found, returns [`KaError::NoOutputDevice`].
+    pub fn supported_buffer_size(
+        self,
+        host: cpal::Host,
+    ) -> Result<cpal::SupportedBufferSize, KaError> {
+        Ok(self
+            .cpal_device(host)?
+            .default_output_config()?
+            .buffer_size()
+            .clone())
+    }
 }
 
 /// Returns all device names available on the system.
@@ -156,16 +186,7 @@ impl Backend {
         let host = cpal::default_host();
 
         // get output device
-        let device = match device {
-            Device::Default => host
-                .default_output_device()
-                .ok_or(KaError::NoOutputDevice)?,
-            Device::Name(name) => host
-                .output_devices()?
-                .find(|d| device_name(d) == name)
-                .ok_or(KaError::NoOutputDevice)?,
-            Device::Custom(device) => device,
-        };
+        let device = device.cpal_device(host)?;
 
         // get supported stream config
         let default_config = device.default_output_config()?;
