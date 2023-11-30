@@ -963,18 +963,22 @@ impl SoundHandle {
         self.guard().set_loop(loop_region)
     }
     /// Return the starting point of the loop as an index in the source data.
+    #[inline]
     pub fn loop_start(&self) -> usize {
         self.guard().loop_start()
     }
     /// Return the ending point of the loop as an index in the source data.
+    #[inline]
     pub fn loop_end(&self) -> usize {
         self.guard().loop_end()
     }
     /// Return the starting point of the loop as seconds.
+    #[inline]
     pub fn loop_start_secs(&self) -> f64 {
         self.guard().loop_start_secs()
     }
     /// Return the ending point of the loop as seconds.
+    #[inline]
     pub fn loop_end_secs(&self) -> f64 {
         self.guard().loop_end_secs()
     }
