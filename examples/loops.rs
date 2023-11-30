@@ -26,7 +26,7 @@ fn main() {
     );
     sound.add_command(command);
 
-    // change the loop to be 4-5 seconds from 13 secons in the span of 5 seconds
+    // change the loop to be 4-5 seconds from 13 seconds in the span of 5 seconds
     // (the playback rate change command is applied simultaneously)
     let command = Command::new(Change::LoopSeconds(4.0..=6.0), Easing::Linear, 13.0, 5.0);
     sound.add_command(command);
