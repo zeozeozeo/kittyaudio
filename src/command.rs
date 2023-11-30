@@ -2,6 +2,7 @@ use std::f32::consts::PI;
 
 use crate::PlaybackRate;
 
+/// https://github.com/Michaelangel007/easing#the-magic-of-170158
 const C1: f32 = 1.70158;
 const C2: f32 = C1 * 1.525;
 const C3: f32 = C1 + 1.0;
