@@ -687,7 +687,7 @@ impl Sound {
     }
 
     fn update_commands(&mut self, dt: f64) {
-        for command in &mut self.commands {
+        self.commands.retain_mut(|command| {
             if command.start_after <= 0.0 {
                 // compute value with easing
                 // start_after will be negative, and it counts the amount of time
@@ -727,7 +727,8 @@ impl Sound {
             command.start_after -= dt;
 
             // if the command has finished, stop the tween
-            if -command.start_after >= command.duration {
+            let is_running = -command.start_after < command.duration;
+            if !is_running {
                 match command.change {
                     Change::Volume(_) => self.volume.stop_tween(),
                     Change::Index(_) => self.index.stop_tween(),
@@ -737,10 +738,8 @@ impl Sound {
                     Change::LoopSeconds(_) | Change::LoopIndex(_) => self.loop_points.stop_tween(),
                 }
             }
-        }
-
-        // only keep commands that are running
-        self.commands.retain(|c| -c.start_after < c.duration);
+            is_running // only keep commands that are running
+        });
     }
 
     /// Set the loop points as an index in the source data.

@@ -42,12 +42,13 @@ impl Renderer for DefaultRenderer {
     fn next_frame(&mut self, sample_rate: u32) -> Frame {
         // mix samples from all playing sounds
         let mut out = Frame::ZERO;
-        for sound in &mut self.sounds {
-            out += sound.guard().next_frame(sample_rate);
-        }
 
         // remove all sounds that finished playback
-        self.sounds.retain(|s| !s.finished());
+        self.sounds.retain_mut(|s| {
+            let mut guard = s.guard();
+            out += guard.next_frame(sample_rate);
+            !guard.finished()
+        });
 
         out
     }
