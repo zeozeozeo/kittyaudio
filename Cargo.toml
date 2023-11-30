@@ -2,7 +2,7 @@
 name = "kittyaudio"
 description = "An audio playback library focusing on simplicity"
 license = "MIT OR BSL-1.0"
-version = "0.1.0"
+version = "0.1.1"
 exclude = ["assets/**"]
 documentation = "https://docs.rs/kittyaudio"
 homepage = "https://github.com/zeozeozeo/kittyaudio"
@@ -10,6 +10,7 @@ repository = "https://github.com/zeozeozeo/kittyaudio"
 keywords = ["audio", "playback", "gamedev"]
 categories = ["multimedia"]
 edition = "2021"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

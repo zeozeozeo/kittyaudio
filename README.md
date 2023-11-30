@@ -1,6 +1,16 @@
 # 🐱 kittyaudio
 
+![docs.rs](https://img.shields.io/docsrs/kittyaudio) ![Downloads on Crates.io](https://img.shields.io/crates/d/kittyaudio)
+
+#### [crates.io](https://crates.io/crates/kittyaudio) | [docs.rs](https://docs.rs/kittyaudio/0.1.0/kittyaudio/) | [examples](https://github.com/zeozeozeo/kittyaudio/tree/master/examples)
+
 kittyaudio is a Rust audio playback library focusing on simplicity, speed and low-latency audio playback.
+
+Installation with `cargo`:
+
+```
+cargo add kittyaudio
+```
 
 # Example
 
@@ -23,7 +33,7 @@ fn main() {
 }
 ```
 
-# Goals
+# Features
 
 * Low-latency audio playback
 * Cross-platform audio playback (including wasm)
@@ -31,10 +41,17 @@ fn main() {
 * Low CPU usage
 * Minimal dependencies
 * Minimal memory allocations
-* Streaming and in-memory audio playback
 * No `panic!()` or `.unwrap()`, always propogate errors
 * No unsafe code
 * Simple API, while being customizable
 * Optionally use [Symphonia](https://github.com/pdeljanov/Symphonia) to support most audio formats
 * Feature to disable audio playback support, if you want to use kittyaudio purely as an audio library
 * Commands to change volume, playback rate and position in the sound with easings
+
+# Roadmap
+
+Those features are not implemented yet.
+
+* Effects (reverb, delay, eq, etc.)
+* C API
+* Audio streaming from disk
