@@ -2,7 +2,7 @@
 
 ![docs.rs](https://img.shields.io/docsrs/kittyaudio) ![Downloads on Crates.io](https://img.shields.io/crates/d/kittyaudio)
 
-#### [crates.io](https://crates.io/crates/kittyaudio) | [docs.rs](https://docs.rs/kittyaudio/0.1.0/kittyaudio/) | [examples](https://github.com/zeozeozeo/kittyaudio/tree/master/examples)
+#### [crates.io](https://crates.io/crates/kittyaudio) | [docs.rs](https://docs.rs/kittyaudio) | [examples](https://github.com/zeozeozeo/kittyaudio/tree/master/examples)
 
 kittyaudio is a Rust audio playback library focusing on simplicity, speed and low-latency audio playback.
 
