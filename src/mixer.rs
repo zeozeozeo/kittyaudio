@@ -218,8 +218,9 @@ impl RecordMixer {
     /// Fill the given buffer with audio samples. When the buffer is processed,
     /// no other samples are rendered before the next call to this function.
     pub fn fill_buffer(&self, sample_rate: u32, frames: &mut [Frame]) {
+        let mut renderer = self.renderer.guard(); // acquire lock for this entire function
         for frame in frames {
-            *frame = self.renderer.guard().next_frame(sample_rate);
+            *frame = renderer.next_frame(sample_rate);
         }
     }
 
