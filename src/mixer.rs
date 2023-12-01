@@ -6,7 +6,8 @@ use crate::Sound;
 #[cfg(feature = "cpal")]
 use crate::{Backend, Device, StreamSettings};
 
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use parking_lot::{Mutex, MutexGuard};
+use std::sync::Arc;
 
 /// The audio renderer trait. Can be used to make custom audio renderers.
 pub trait Renderer: Clone + Send + 'static {
@@ -44,8 +45,8 @@ impl Renderer for DefaultRenderer {
         let mut out = Frame::ZERO;
 
         // remove all sounds that finished playback
-        self.sounds.retain_mut(|s| {
-            let mut guard = s.guard();
+        self.sounds.retain_mut(|sound| {
+            let mut guard = sound.guard();
             out += guard.next_frame(sample_rate);
             !guard.finished()
         });
@@ -73,7 +74,7 @@ impl<R: Renderer> RendererHandle<R> {
     /// Get a lock on the underlying renderer.
     #[inline(always)]
     pub fn guard(&self) -> MutexGuard<'_, R> {
-        self.0.lock().unwrap_or_else(PoisonError::into_inner)
+        self.0.lock()
     }
 }
 
@@ -108,7 +109,7 @@ impl Mixer {
     #[cfg(feature = "cpal")]
     #[inline(always)]
     pub fn backend(&self) -> MutexGuard<'_, Backend> {
-        self.backend.lock().unwrap_or_else(PoisonError::into_inner)
+        self.backend.lock()
     }
 
     /// Play a [`Sound`].
@@ -149,7 +150,6 @@ impl Mixer {
             // TODO: handle errors from `start_audio_thread`
             let _ = backend
                 .lock()
-                .unwrap_or_else(PoisonError::into_inner)
                 .start_audio_thread(device, settings, renderer);
         });
     }

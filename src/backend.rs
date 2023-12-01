@@ -1,15 +1,10 @@
-use std::sync::Arc;
-use std::sync::Mutex;
-use std::sync::PoisonError;
-use std::time::Duration;
-
-use crate::KaError;
-use crate::Renderer;
-use crate::RendererHandle;
+use crate::{KaError, Renderer, RendererHandle};
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
     FromSample, SampleFormat, SizedSample, StreamConfig,
 };
+use parking_lot::Mutex;
+use std::{sync::Arc, time::Duration};
 
 /// Specifies what device [`cpal`] should use.
 ///
@@ -164,11 +159,7 @@ impl Backend {
     /// Handle all errors in the error queue.
     #[inline]
     pub fn handle_errors(&mut self, err_fn: impl FnMut(cpal::StreamError)) {
-        self.error_queue
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
-            .drain(..)
-            .for_each(err_fn)
+        self.error_queue.lock().drain(..).for_each(err_fn)
     }
 
     /// Starts the audio thread.
@@ -260,11 +251,7 @@ impl Backend {
     ) -> bool {
         // check for device disconnection
         let error_queue = self.error_queue.clone();
-        for err in error_queue
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
-            .drain(..)
-        {
+        for err in error_queue.lock().drain(..) {
             if matches!(err, cpal::StreamError::DeviceNotAvailable) {
                 return true;
             }
@@ -332,10 +319,7 @@ impl Backend {
             },
             move |err| {
                 // we got an error on stream, push it to the error queue
-                error_queue
-                    .lock()
-                    .unwrap_or_else(PoisonError::into_inner)
-                    .push(err)
+                error_queue.lock().push(err)
             },
             None,
         )?;

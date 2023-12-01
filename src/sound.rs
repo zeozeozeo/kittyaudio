@@ -1,7 +1,8 @@
 use crate::{lerp_f64, Change, Command, Parameter, Resampler, Tweenable};
+use parking_lot::{Mutex, MutexGuard};
 use std::ops::{Add, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use std::ops::{AddAssign, RangeInclusive};
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::sync::Arc;
 use std::time::Duration;
 
 #[cfg(feature = "symphonia")]
@@ -829,7 +830,7 @@ impl SoundHandle {
     /// Get a lock on the underlying [`Sound`].
     #[inline]
     pub fn guard(&self) -> MutexGuard<'_, Sound> {
-        self.0.lock().unwrap_or_else(PoisonError::into_inner)
+        self.0.lock()
     }
 
     /// Return the sample rate of the sound.
