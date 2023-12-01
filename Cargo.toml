@@ -2,7 +2,7 @@
 name = "kittyaudio"
 description = "An audio playback library focusing on simplicity"
 license = "MIT OR BSL-1.0"
-version = "0.1.4"
+version = "0.1.5"
 exclude = ["assets/**"]
 documentation = "https://docs.rs/kittyaudio"
 homepage = "https://github.com/zeozeozeo/kittyaudio"
