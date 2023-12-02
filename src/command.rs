@@ -526,7 +526,7 @@ impl Tweenable for usize {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Parameter<T: Tweenable> {
     /// Last tweened value. If no commands are running, this is the same as
-    /// the previous value.
+    /// the base value.
     pub value: T,
     /// Value before the last command started.
     pub base_value: T,
