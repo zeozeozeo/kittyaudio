@@ -55,6 +55,7 @@ mod backend;
 mod command;
 mod error;
 mod mixer;
+mod renderer;
 mod resampler;
 mod sound;
 
@@ -64,6 +65,7 @@ pub use backend::*;
 pub use command::*;
 pub use error::*;
 pub use mixer::*;
+pub use renderer::*;
 pub use resampler::*;
 pub use sound::*;
 

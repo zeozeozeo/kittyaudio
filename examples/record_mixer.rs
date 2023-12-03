@@ -1,9 +1,8 @@
 //! Demonstrates using a custom mixer for recording audio.
 //! This example does NOT require the `cpal` feature.
 
-use std::time::Instant;
-
 use kittyaudio::{include_sound, Frame, RecordMixer};
+use std::time::Instant;
 
 fn main() {
     println!("loading sound...");

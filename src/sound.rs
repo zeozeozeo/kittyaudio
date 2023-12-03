@@ -549,11 +549,11 @@ impl Sound {
         self.index.value >= self.frames.len()
     }
 
-    /// Render the next frame. If the sound has ended, return `Frame::ZERO`.
+    /// Render the next frame. If the sound has ended, return [`None`].
     #[inline]
-    pub fn next_frame(&mut self, sample_rate: u32) -> Frame {
+    pub fn next_frame(&mut self, sample_rate: u32) -> Option<Frame> {
         if self.finished() {
-            return Frame::ZERO;
+            return None;
         }
 
         if self.loop_enabled {
@@ -578,7 +578,7 @@ impl Sound {
             self.update_position();
         }
 
-        frame
+        Some(frame)
     }
 
     fn update_loop(&mut self, start: usize, end: usize) {
@@ -871,9 +871,9 @@ impl SoundHandle {
     pub fn finished(&self) -> bool {
         self.guard().finished()
     }
-    /// Render the next frame. If the sound has ended, return `Frame::ZERO`.
+    /// Render the next frame. If the sound has ended, return [`None`].
     #[inline]
-    pub fn next_frame(&self, sample_rate: u32) -> Frame {
+    pub fn next_frame(&self, sample_rate: u32) -> Option<Frame> {
         self.guard().next_frame(sample_rate)
     }
     /// Reset the sound to the beginning.
