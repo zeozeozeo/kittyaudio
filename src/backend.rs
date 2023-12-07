@@ -74,6 +74,11 @@ impl Device {
             .buffer_size()
             .clone())
     }
+
+    /// Return the [cpal] device name.
+    pub fn name(self) -> Result<String, KaError> {
+        Ok(self.cpal_device(cpal::default_host())?.name()?)
+    }
 }
 
 /// Returns all device names available on the system.

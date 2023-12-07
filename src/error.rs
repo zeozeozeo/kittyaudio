@@ -28,6 +28,8 @@ pub enum KaError {
     IoError(#[from] std::io::Error),
     #[error("failed to get default track as no tracks are present")]
     NoTracksArePresent,
+    #[error("failed to get cpal device name: {0}")]
+    DeviceNameError(#[from] cpal::DeviceNameError),
 
     // [`Sound`] errors
     #[cfg(feature = "symphonia")]
