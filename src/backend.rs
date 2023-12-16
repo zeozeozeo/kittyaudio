@@ -321,6 +321,7 @@ impl Backend {
                         }
                     }
                 }
+                renderer_moved.guard().on_buffer(data);
             },
             move |err| {
                 // we got an error on stream, push it to the error queue

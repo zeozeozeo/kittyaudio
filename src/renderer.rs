@@ -9,6 +9,13 @@ pub trait Renderer: Clone + Send + 'static {
     ///
     /// Note: you can use a [`crate::Resampler`] to resample audio data.
     fn next_frame(&mut self, sample_rate: u32) -> Frame;
+
+    /// This gets called when an audio buffer is done processing.
+    fn on_buffer<T>(&mut self, _buffer: &mut [T])
+    where
+        T: cpal::SizedSample + cpal::FromSample<f32>,
+    {
+    }
 }
 
 /// Default audio renderer.
@@ -16,6 +23,8 @@ pub trait Renderer: Clone + Send + 'static {
 pub struct DefaultRenderer {
     /// All playing sounds.
     pub sounds: Vec<SoundHandle>,
+    /// The last buffer size given by the [cpal] backend.
+    pub last_buffer_size: usize,
 }
 
 impl DefaultRenderer {
@@ -49,6 +58,13 @@ impl Renderer for DefaultRenderer {
         });
 
         out
+    }
+
+    fn on_buffer<T>(&mut self, buffer: &mut [T])
+    where
+        T: cpal::SizedSample + cpal::FromSample<f32>,
+    {
+        self.last_buffer_size = buffer.len();
     }
 }
 
