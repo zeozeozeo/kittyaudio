@@ -2,7 +2,7 @@
 name = "kittyaudio"
 description = "An audio playback library focusing on simplicity"
 license = "MIT OR BSL-1.0"
-version = "0.1.6"
+version = "0.1.7"
 exclude = ["assets/**"]
 documentation = "https://docs.rs/kittyaudio"
 homepage = "https://github.com/zeozeozeo/kittyaudio"
@@ -23,6 +23,9 @@ thiserror = "1.0.50"
 
 [features]
 default = ["symphonia", "cpal"]
-# symphonia feature - Audio decoding support with [`symphonia`].
-# cpal feature - Audio playback support with [`cpal`].
-#                Disable this if you want to use kittyaudio purely as an audio library.
+
+## Audio decoding support
+symphonia = ["dep:symphonia"]
+
+## Audio playback support, disable if you want to use kittyaudio purely as an audio library
+cpal = ["dep:cpal"]
