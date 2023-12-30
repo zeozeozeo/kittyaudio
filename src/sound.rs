@@ -298,7 +298,7 @@ pub struct Sound {
 
 impl Default for Sound {
     fn default() -> Self {
-        let mut sound = Self {
+        Self {
             sample_rate: 0,
             frames: Arc::new([]),
             paused: false,
@@ -310,15 +310,7 @@ impl Default for Sound {
             commands: vec![],
             loop_points: Parameter::new(LoopPoints::NO_LOOP),
             loop_enabled: false,
-        };
-
-        // fill the resampler with 3 audio frames so the playback starts
-        // immediately (the resampler needs 4 samples to output any audio)
-        for _ in 0..3 {
-            sound.update_position();
         }
-
-        sound
     }
 }
 
@@ -363,6 +355,23 @@ where
 }
 
 impl Sound {
+    /// Make a new [`Sound`] with sample_rate and frames.
+    fn new(sample_rate: u32, frames: Arc<[Frame]>) -> Self {
+        let mut sound = Sound {
+            sample_rate,
+            frames,
+            ..Default::default()
+        };
+
+        // fill the resampler with 3 audio frames so the playback starts
+        // immediately (the resampler needs 4 samples to output any audio)
+        for _ in 0..3 {
+            sound.update_position();
+        }
+
+        sound
+    }
+
     /// Make a [`Sound`] from [`symphonia`]'s [`Box`]'ed [`MediaSource`].
     ///
     /// Required features: `symphonia`
@@ -435,11 +444,7 @@ impl Sound {
             frames.append(&mut load_frames_from_buffer_ref(&buffer)?);
         }
 
-        Ok(Self {
-            sample_rate,
-            frames: frames.into(),
-            ..Default::default()
-        })
+        Ok(Self::new(sample_rate, frames.into()))
     }
 
     /// Make a [`Sound`] from [`symphonia`]'s [`MediaSource`].
@@ -483,11 +488,7 @@ impl Sound {
     /// Make a [`Sound`] from a slice of [`Frame`]s and a sample rate.
     #[inline]
     pub fn from_frames(sample_rate: u32, frames: &[Frame]) -> Self {
-        Self {
-            sample_rate,
-            frames: frames.into(),
-            ..Default::default()
-        }
+        Self::new(sample_rate, frames.into())
     }
 
     /// Return the sample rate of the sound.
