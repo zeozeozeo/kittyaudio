@@ -1030,6 +1030,7 @@ impl SoundHandle {
     }
     /// Resume the sound if paused. This won't immediately start the audio signal, but smoothly
     /// interpolate the last audio value for 4 frames.
+    #[inline]
     pub fn resume(&self) {
         self.guard().resume()
     }
