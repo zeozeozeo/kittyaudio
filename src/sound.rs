@@ -355,7 +355,7 @@ where
 }
 
 impl Sound {
-    /// Make a new [`Sound`] with sample_rate and frames.
+    /// Make a new [`Sound`] with a given sample rate and frames.
     fn new(sample_rate: u32, frames: Arc<[Frame]>) -> Self {
         let mut sound = Sound {
             sample_rate,
