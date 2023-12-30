@@ -214,9 +214,9 @@ impl Tweenable for PlaybackRate {
 /// Specifies a loop region.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct LoopPoints {
-    /// Start of the loop as an index in the source data.
+    /// Start of the loop as a frame index.
     pub start: usize,
-    /// End of the loop as an index in the source data.
+    /// End of the loop as a frame index.
     pub end: usize,
 }
 
@@ -742,7 +742,7 @@ impl Sound {
         });
     }
 
-    /// Set the loop points as an index in the source data.
+    /// Set the loop points as a frame index.
     #[inline]
     pub fn set_loop_index(&mut self, loop_region: RangeInclusive<usize>) {
         self.loop_points
@@ -764,13 +764,13 @@ impl Sound {
             Parameter::new(LoopPoints::from_range_secs(loop_region, self.sample_rate));
     }
 
-    /// Return the starting point of the loop as an index in the source data.
+    /// Return the starting point of the loop as a frame index.
     #[inline]
     pub fn loop_start(&self) -> usize {
         self.loop_points.value.start
     }
 
-    /// Return the ending point of the loop as an index in the source data.
+    /// Return the ending point of the loop as a frame index.
     #[inline]
     pub fn loop_end(&self) -> usize {
         self.loop_points.value.end
@@ -804,6 +804,26 @@ impl Sound {
     #[inline]
     pub fn outputting_silence(&self) -> bool {
         self.resampler.outputting_silence()
+    }
+
+    /// Pause the sound if it is playing. This won't cut off the audio signal, but smoothly
+    /// interpolate the last audio value to 0 for 4 frames.
+    #[inline]
+    pub fn pause(&mut self) {
+        self.paused = true;
+    }
+
+    /// Return whether the sound is paused. This does not take the playback speed for account.
+    #[inline]
+    pub fn paused(&self) -> bool {
+        self.paused
+    }
+
+    /// Resume the sound if paused. This won't immediately start the audio signal, but smoothly
+    /// interpolate the last audio value for 4 frames.
+    #[inline]
+    pub fn resume(&mut self) {
+        self.paused = false;
     }
 }
 
@@ -941,7 +961,7 @@ impl SoundHandle {
     pub fn add_command(&self, command: Command) {
         self.guard().add_command(command)
     }
-    /// Set the loop points as an index in the source data.
+    /// Set the loop points as a frame index.
     #[inline]
     pub fn set_loop_index(&self, loop_region: RangeInclusive<usize>) {
         self.guard().set_loop_index(loop_region)
@@ -961,12 +981,12 @@ impl SoundHandle {
     pub fn set_loop(&self, loop_region: RangeInclusive<f64>) {
         self.guard().set_loop(loop_region)
     }
-    /// Return the starting point of the loop as an index in the source data.
+    /// Return the starting point of the loop as a frame index.
     #[inline]
     pub fn loop_start(&self) -> usize {
         self.guard().loop_start()
     }
-    /// Return the ending point of the loop as an index in the source data.
+    /// Return the ending point of the loop as a frame index.
     #[inline]
     pub fn loop_end(&self) -> usize {
         self.guard().loop_end()
@@ -995,5 +1015,21 @@ impl SoundHandle {
     #[inline]
     pub fn outputting_silence(&self) -> bool {
         self.guard().outputting_silence()
+    }
+    /// Pause the sound if it is playing. This won't cut off the audio signal, but smoothly
+    /// interpolate the last audio value to 0 for 4 frames.
+    #[inline]
+    pub fn pause(&self) {
+        self.guard().pause()
+    }
+    /// Return whether the sound is paused. This does not take the playback speed for account.
+    #[inline]
+    pub fn paused(&self) -> bool {
+        self.guard().paused
+    }
+    /// Resume the sound if paused. This won't immediately start the audio signal, but smoothly
+    /// interpolate the last audio value for 4 frames.
+    pub fn resume(&self) {
+        self.guard().resume()
     }
 }
