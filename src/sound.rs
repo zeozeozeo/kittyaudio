@@ -840,198 +840,71 @@ impl From<Sound> for SoundHandle {
     }
 }
 
-// TODO: can we generate this with a macro?
 impl SoundHandle {
-    /// Create a new [`SoundHandle`] from a [`Sound`].
-    #[inline]
-    pub fn new(sound: impl Into<Sound>) -> Self {
-        Self(Arc::new(Mutex::new(sound.into())))
+    /// Make a new [`SoundHandle`] from a [`Sound`].
+    #[inline] pub fn new(sound: Sound) -> Self {
+        Self(Arc::new(Mutex::new(sound)))
     }
 
-    /// Get a lock on the underlying [`Sound`].
-    #[inline]
-    pub fn guard(&self) -> MutexGuard<'_, Sound> {
+    /// Lock the [`Sound`] for modification. Returns a [`MutexGuard`].
+    #[inline] pub fn guard(&self) -> MutexGuard<Sound> {
         self.0.lock()
     }
 
-    /// Return the sample rate of the sound.
-    #[inline]
-    pub fn sample_rate(&self) -> u32 {
-        self.guard().sample_rate()
+    /// Delegate to the underlying [`Sound`].
+    #[inline] pub fn loop_enabled(&self) -> bool {
+        return self.guard().loop_enabled;
     }
-    /// Return the duration of the sound.
-    ///
-    /// Returns [`Duration`].
-    #[inline]
-    pub fn duration(&self) -> Duration {
-        self.guard().duration()
-    }
-    /// Return the duration of the sound in seconds.
-    #[inline]
-    pub fn duration_seconds(&self) -> f64 {
-        self.guard().duration_seconds()
-    }
-    /// Push the current frame (pointed by `self.index()`) to the resampler.
-    #[inline]
-    pub fn push_frame_to_resampler(&self) {
-        self.guard().push_frame_to_resampler()
-    }
-    /// Return whether the sound is playing backward.
-    #[inline]
-    pub fn is_playing_backwards(&self) -> bool {
-        self.guard().is_playing_backwards()
-    }
-    /// Increment/decrement the position value in the sound,
-    /// pushing the previous sound frame to the resampler.
-    #[inline]
-    pub fn update_position(&self) {
-        self.guard().update_position()
-    }
-    /// Return whether the sound has finished playback.
-    #[inline]
-    pub fn finished(&self) -> bool {
-        self.guard().finished()
-    }
-    /// Render the next frame. If the sound has ended, return [`None`].
-    #[inline]
-    pub fn next_frame(&self, sample_rate: u32) -> Option<Frame> {
-        self.guard().next_frame(sample_rate)
-    }
-    /// Reset the sound to the beginning.
-    #[inline]
-    pub fn reset(&self) {
-        self.guard().reset()
-    }
-    /// Set the playback rate of the sound. See [PlaybackRate] for more details. Returns the previous playback rate.
-    #[inline]
-    pub fn set_playback_rate(&self, playback_rate: PlaybackRate) -> PlaybackRate {
-        self.guard().set_playback_rate(playback_rate)
-    }
-    /// Return the current playback rate value. Can be modified with commands.
-    #[inline]
-    pub fn playback_rate(&self) -> PlaybackRate {
-        self.guard().playback_rate()
-    }
-    /// Return the current base playback rate value. Can't be modified with commands.
-    #[inline]
-    pub fn base_playback_rate(&self) -> PlaybackRate {
-        self.guard().base_playback_rate()
-    }
-    /// Set the current volume. Return the previous volume value.
-    #[inline]
-    pub fn set_volume(&self, volume: f32) -> f32 {
-        self.guard().set_volume(volume)
-    }
-    /// Return the current volume value. Can be modified with commands.
-    #[inline]
-    pub fn volume(&self) -> f32 {
-        self.guard().volume()
-    }
-    /// Return the current base volume value. Can't be modified with commands.
-    #[inline]
-    pub fn base_volume(&self) -> f32 {
-        self.guard().base_volume()
-    }
-    /// Seek to an index in the source data.
-    #[inline]
-    pub fn seek_to_index(&self, index: usize) {
-        self.guard().seek_to_index(index)
-    }
-    /// Seek to the end of the sound.
-    #[inline]
-    pub fn seek_to_end(&self) {
-        self.guard().seek_to_end()
-    }
-    /// Seek by a specified amount of seconds.
-    #[inline]
-    pub fn seek_by(&self, seconds: f64) {
-        self.guard().seek_by(seconds)
-    }
-    /// Seek to a specified position in seconds.
-    #[inline]
-    pub fn seek_to(&self, seconds: f64) {
-        self.guard().seek_to(seconds)
-    }
-    /// Reverse the playback rate so the sound plays backwards.
-    #[inline]
-    pub fn reverse(&self) {
-        self.guard().reverse()
-    }
-    /// Add a command to the sound. See [`Command`] for more details.
-    #[inline]
-    pub fn add_command(&self, command: Command) {
-        self.guard().add_command(command)
-    }
-    /// Set the loop points as a frame index.
-    #[inline]
-    pub fn set_loop_index(&self, loop_region: RangeInclusive<usize>) {
-        self.guard().set_loop_index(loop_region)
-    }
-    /// Set the current loop state (enabled/disabled). Return the previous loop state.
-    #[inline]
-    pub fn set_loop_enabled(&self, enabled: bool) -> bool {
-        self.guard().set_loop_enabled(enabled)
-    }
-    /// Return the current loop state (enabled/disabled).
-    #[inline]
-    pub fn loop_enabled(&self) -> bool {
-        self.guard().loop_enabled
-    }
-    /// Set the loop points as a position in seconds.
-    #[inline]
-    pub fn set_loop(&self, loop_region: RangeInclusive<f64>) {
-        self.guard().set_loop(loop_region)
-    }
-    /// Return the starting point of the loop as a frame index.
-    #[inline]
-    pub fn loop_start(&self) -> usize {
-        self.guard().loop_start()
-    }
-    /// Return the ending point of the loop as a frame index.
-    #[inline]
-    pub fn loop_end(&self) -> usize {
-        self.guard().loop_end()
-    }
-    /// Return the starting point of the loop as seconds.
-    #[inline]
-    pub fn loop_start_secs(&self) -> f64 {
-        self.guard().loop_start_secs()
-    }
-    /// Return the ending point of the loop as seconds.
-    #[inline]
-    pub fn loop_end_secs(&self) -> f64 {
-        self.guard().loop_end_secs()
-    }
-    /// Return the current index in the source sound data. Can be modified with commands.
-    #[inline]
-    pub fn index(&self) -> usize {
-        self.guard().index()
-    }
-    /// Return the current index in the source sound data. Cannot be modified with commands.
-    #[inline]
-    pub fn base_index(&self) -> usize {
-        self.guard().base_index()
-    }
-    /// Return whether the sound is currently outputting silence.
-    #[inline]
-    pub fn outputting_silence(&self) -> bool {
-        self.guard().outputting_silence()
-    }
-    /// Pause the sound if it is playing. This won't cut off the audio signal, but smoothly
-    /// interpolate the last audio value to 0 for 4 frames.
-    #[inline]
-    pub fn pause(&self) {
-        self.guard().pause()
-    }
-    /// Return whether the sound is paused. This does not take the playback speed for account.
-    #[inline]
-    pub fn paused(&self) -> bool {
-        self.guard().paused
-    }
-    /// Resume the sound if paused. This won't immediately start the audio signal, but smoothly
-    /// interpolate the last audio value for 4 frames.
-    #[inline]
-    pub fn resume(&self) {
-        self.guard().resume()
+}
+
+macro_rules! delegate {
+    ($($name:ident($($arg:ident: $type:ty),*) -> $ret:ty),* $(,)?) => {
+        $(
+            #[inline]
+            /// Delegate to the underlying [`Sound`]'s method.
+            pub fn $name(&self, $($arg: $type),*) -> $ret {
+                self.guard().$name($($arg),*)
+            }
+        )*
+    };
+}
+
+// best solution for now?
+impl SoundHandle {
+    delegate! {
+        sample_rate() -> u32,
+        duration() -> Duration,
+        duration_seconds() -> f64,
+        push_frame_to_resampler() -> (),
+        is_playing_backwards() -> bool,
+        update_position() -> (),
+        finished() -> bool,
+        next_frame(sample_rate: u32) -> Option<Frame>,
+        reset() -> (),
+        set_playback_rate(playback_rate: PlaybackRate) -> PlaybackRate,
+        playback_rate() -> PlaybackRate,
+        base_playback_rate() -> PlaybackRate,
+        set_volume(volume: f32) -> f32,
+        volume() -> f32,
+        base_volume() -> f32,
+        seek_to_index(index: usize) -> (),
+        seek_to_end() -> (),
+        seek_by(seconds: f64) -> (),
+        seek_to(seconds: f64) -> (),
+        reverse() -> (),
+        add_command(command: Command) -> (),
+        set_loop_index(loop_region: RangeInclusive<usize>) -> (),
+        set_loop_enabled(enabled: bool) -> bool,
+        set_loop(loop_region: RangeInclusive<f64>) -> (),
+        loop_start() -> usize,
+        loop_end() -> usize,
+        loop_start_secs() -> f64,
+        loop_end_secs() -> f64,
+        index() -> usize,
+        base_index() -> usize,
+        outputting_silence() -> bool,
+        pause() -> (),
+        paused() -> bool,
+        resume() -> (),
     }
 }
