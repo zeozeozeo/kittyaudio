@@ -48,7 +48,7 @@ impl Renderer for DefaultRenderer {
 
         // remove all sounds that finished playback
         self.sounds.retain_mut(|sound| {
-            let frame = sound.guard().next_frame(sample_rate);
+            let frame = sound.next_frame(sample_rate);
             if let Some(frame) = frame {
                 out += frame;
                 true
