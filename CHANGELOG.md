@@ -1,3 +1,7 @@
+# 0.1.8
+
+- reduce the amount of boilerplate in sound.rs with the `delegate!()` macro for generating `SoundWrapper`'s methods (thanks [@Microwonk](https://github.com/Microwonk)!) https://github.com/zeozeozeo/kittyaudio/pull/2
+
 # 0.1.7
 
 - fix `Sound` skipping the first three frames (https://github.com/zeozeozeo/kittyaudio/pull/1, thanks [@Sytronic](https://github.com/Sytronik)!)
