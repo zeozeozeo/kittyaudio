@@ -842,17 +842,20 @@ impl From<Sound> for SoundHandle {
 
 impl SoundHandle {
     /// Make a new [`SoundHandle`] from a [`Sound`].
-    #[inline] pub fn new(sound: Sound) -> Self {
+    #[inline]
+    pub fn new(sound: Sound) -> Self {
         Self(Arc::new(Mutex::new(sound)))
     }
 
     /// Lock the [`Sound`] for modification. Returns a [`MutexGuard`].
-    #[inline] pub fn guard(&self) -> MutexGuard<Sound> {
+    #[inline]
+    pub fn guard(&self) -> MutexGuard<Sound> {
         self.0.lock()
     }
 
     /// Delegate to the underlying [`Sound`].
-    #[inline] pub fn loop_enabled(&self) -> bool {
+    #[inline]
+    pub fn loop_enabled(&self) -> bool {
         return self.guard().loop_enabled;
     }
 }
@@ -860,8 +863,8 @@ impl SoundHandle {
 macro_rules! delegate {
     ($($name:ident($($arg:ident: $type:ty),*) -> $ret:ty),* $(,)?) => {
         $(
-            #[inline]
             /// Delegate to the underlying [`Sound`]'s method.
+            #[inline]
             pub fn $name(&self, $($arg: $type),*) -> $ret {
                 self.guard().$name($($arg),*)
             }
