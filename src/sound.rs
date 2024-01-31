@@ -861,11 +861,11 @@ impl SoundHandle {
 }
 
 macro_rules! delegate {
-    ($($name:ident($($arg:ident: $type:ty),*) -> $ret:ty),* $(,)?) => {
+    ($($name:ident($($arg:ident: $type:ty),*) $(-> $ret:ty)?),* $(,)?) => {
         $(
             /// Delegate to the underlying [`Sound`]'s method.
             #[inline]
-            pub fn $name(&self, $($arg: $type),*) -> $ret {
+            pub fn $name(&self, $($arg: $type),*) $(-> $ret)? {
                 self.guard().$name($($arg),*)
             }
         )*
@@ -878,27 +878,27 @@ impl SoundHandle {
         sample_rate() -> u32,
         duration() -> Duration,
         duration_seconds() -> f64,
-        push_frame_to_resampler() -> (),
+        push_frame_to_resampler(),
         is_playing_backwards() -> bool,
-        update_position() -> (),
+        update_position(),
         finished() -> bool,
         next_frame(sample_rate: u32) -> Option<Frame>,
-        reset() -> (),
+        reset(),
         set_playback_rate(playback_rate: PlaybackRate) -> PlaybackRate,
         playback_rate() -> PlaybackRate,
         base_playback_rate() -> PlaybackRate,
         set_volume(volume: f32) -> f32,
         volume() -> f32,
         base_volume() -> f32,
-        seek_to_index(index: usize) -> (),
-        seek_to_end() -> (),
-        seek_by(seconds: f64) -> (),
-        seek_to(seconds: f64) -> (),
-        reverse() -> (),
-        add_command(command: Command) -> (),
-        set_loop_index(loop_region: RangeInclusive<usize>) -> (),
+        seek_to_index(index: usize),
+        seek_to_end(),
+        seek_by(seconds: f64),
+        seek_to(seconds: f64),
+        reverse(),
+        add_command(command: Command),
+        set_loop_index(loop_region: RangeInclusive<usize>),
         set_loop_enabled(enabled: bool) -> bool,
-        set_loop(loop_region: RangeInclusive<f64>) -> (),
+        set_loop(loop_region: RangeInclusive<f64>),
         loop_start() -> usize,
         loop_end() -> usize,
         loop_start_secs() -> f64,
