@@ -57,6 +57,18 @@ impl Frame {
     pub const fn from_mono(value: f32) -> Self {
         Self::new(value, value)
     }
+
+    /// Pan a frame left or right.
+    ///
+    /// * `x` of 0.0 means hard left panning
+    /// * `x` of 0.5 means center panning (default)
+    /// * `x` of 1.0 means hard right panning
+    pub fn panned(self, x: f32) -> Self {
+        if x == 0.5 {
+            return self;
+        }
+        Self::new(self.left * (1.0 - x).sqrt(), self.right * x.sqrt()) * std::f32::consts::SQRT_2
+    }
 }
 
 impl From<[f32; 2]> for Frame {
@@ -294,6 +306,12 @@ pub struct Sound {
     loop_points: Parameter<LoopPoints>,
     /// Whether looping is enabled.
     pub loop_enabled: bool,
+    /// Controls the audio panning.
+    ///
+    /// * Panning of 0.0 means hard left panning
+    /// * Panning of 0.5 means center panning (default)
+    /// * Panning of 1.0 means hard right panning
+    panning: Parameter<f32>,
 }
 
 impl Default for Sound {
@@ -310,6 +328,7 @@ impl Default for Sound {
             commands: vec![],
             loop_points: Parameter::new(LoopPoints::NO_LOOP),
             loop_enabled: false,
+            panning: Parameter::new(0.5),
         }
     }
 }
@@ -514,11 +533,13 @@ impl Sound {
     /// Push the current frame (pointed by `self.index`) to the resampler.
     pub fn push_frame_to_resampler(&mut self) {
         let frame_index = self.index.value;
-        self.resampler.push_frame(
-            // push silence if index is out of the range
-            *self.frames.get(frame_index).unwrap_or(&Frame::ZERO) * self.volume.value,
-            frame_index,
-        );
+        let frame = self
+            .frames
+            .get(frame_index)
+            .unwrap_or(&Frame::ZERO) // push silence if index is out of the range
+            .panned(self.panning.value.max(0.0))
+            * self.volume.value;
+        self.resampler.push_frame(frame, frame_index);
     }
 
     /// Return whether the sound is playing backward.
@@ -689,11 +710,25 @@ impl Sound {
 
     fn update_commands(&mut self, dt: f64) {
         self.commands.retain_mut(|command| {
+            let is_nonzero_duration = command.duration > 0.0;
+            if !is_nonzero_duration {
+                // this is on the top of this loop because the command.start_after <= check
+                // must be triggered before the stop tween check so commands with
+                // 0 duration are triggered
+                command.start_after -= dt;
+            }
+
             if command.start_after <= 0.0 {
                 // compute value with easing
-                // start_after will be negative, and it counts the amount of time
-                // the sound has been running for
-                let t = command.value((-command.start_after / command.duration) as f32);
+                // start_after will be negative, and it counts the amount of time the sound has been running for
+                // t is a value between 0 and 1
+                let t = if is_nonzero_duration {
+                    // if we divide by 0 here we'll get a NaN
+                    command.value((-command.start_after / command.duration) as f32)
+                } else {
+                    // commands with 0 or less duration end immediately
+                    1.0
+                };
 
                 // apply change
                 match &command.change {
@@ -720,12 +755,15 @@ impl Sound {
                     Change::LoopIndex(range) => self
                         .loop_points
                         .update(LoopPoints::from_range(range.clone()), t),
+                    Change::Panning(panning) => self.panning.update(*panning, t),
                 }
             }
 
-            // if start_after is negative, it measures the elapsed time the command
-            // has been running
-            command.start_after -= dt;
+            if is_nonzero_duration {
+                // if start_after is negative, it measures the elapsed time the command
+                // has been running
+                command.start_after -= dt;
+            }
 
             // if the command has finished, stop the tween
             let is_running = -command.start_after < command.duration;
@@ -737,6 +775,7 @@ impl Sound {
                     Change::Pause(_) => (),
                     Change::PlaybackRate(_) => self.playback_rate.stop_tween(),
                     Change::LoopSeconds(_) | Change::LoopIndex(_) => self.loop_points.stop_tween(),
+                    Change::Panning(_) => self.panning.stop_tween(),
                 }
             }
             is_running // only keep commands that are running
@@ -826,6 +865,36 @@ impl Sound {
     pub fn resume(&mut self) {
         self.paused = false;
     }
+
+    /// Set the audio panning.
+    ///
+    /// * Panning of 0.0 means hard left panning
+    /// * Panning of 0.5 means center panning (default)
+    /// * Panning of 1.0 means hard right panning
+    ///
+    /// # Returns
+    ///
+    /// Returns the previous panning value
+    #[inline]
+    pub fn set_panning(&mut self, panning: f32) -> f32 {
+        let prev_panning = self.panning.value;
+        self.panning.start_tween(panning);
+        prev_panning
+    }
+
+    /// Get the audio panning.
+    ///
+    /// * Panning of 0.0 means hard left panning
+    /// * Panning of 0.5 means center panning (default)
+    /// * Panning of 1.0 means hard right panning
+    ///
+    /// # Returns
+    ///
+    /// Returns the panning value
+    #[inline]
+    pub fn panning(&mut self) -> f32 {
+        self.panning.value
+    }
 }
 
 /// Wraps a [`Sound`] so it can be returned to the user after `play`.
@@ -906,8 +975,10 @@ impl SoundHandle {
         index() -> usize,
         base_index() -> usize,
         outputting_silence() -> bool,
-        pause() -> (),
+        pause(),
         paused() -> bool,
-        resume() -> (),
+        resume(),
+        set_panning(panning: f32) -> f32,
+        panning() -> f32,
     }
 }

@@ -1,3 +1,11 @@
+# 0.1.9
+
+- panning: `Sound::panning()`, `Sound::set_panning()`, `Change::Panning(_)` command
+- add panning example
+- fix a bug where tweening the value with commands the first time would start with the default value of the parameter
+- fix a bug where commands with 0 duration wouldn't get triggered
+- performance improvements
+
 # 0.1.8
 
 - reduce the amount of boilerplate in sound.rs with the `delegate!()` macro for generating `SoundWrapper`'s methods (thanks [@Microwonk](https://github.com/Microwonk)!) https://github.com/zeozeozeo/kittyaudio/pull/2

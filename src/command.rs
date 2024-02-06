@@ -8,21 +8,18 @@ const C3: f32 = C1 + 1.0;
 
 /// https://easings.net/#easeInBack
 #[must_use]
-#[inline(always)]
 fn back_in(t: f32) -> f32 {
     (C3 * t * t).mul_add(t, -C1 * t * t)
 }
 
 /// https://easings.net/#easeOutBack
 #[must_use]
-#[inline(always)]
 fn back_out(t: f32) -> f32 {
     C1.mul_add((t - 1.0).powi(2), C3.mul_add((t - 1.0).powi(3), 1.0))
 }
 
 /// https://easings.net/#easeInOutBack
 #[must_use]
-#[inline(always)]
 fn back_in_out(t: f32) -> f32 {
     if t < 0.5 {
         ((2.0 * t).powi(2) * ((C2 + 1.0) * 2.0).mul_add(t, -C2)) / 2.0
@@ -37,14 +34,12 @@ fn back_in_out(t: f32) -> f32 {
 
 /// https://easings.net/#easeInBounce
 #[must_use]
-#[inline(always)]
 fn bounce_in(t: f32) -> f32 {
     1.0 - bounce_out(1.0 - t)
 }
 
 /// https://easings.net/#easeOutBounce
 #[must_use]
-#[inline(always)]
 fn bounce_out(t: f32) -> f32 {
     const N1: f32 = 7.5625;
     const D1: f32 = 2.75;
@@ -61,7 +56,6 @@ fn bounce_out(t: f32) -> f32 {
 
 /// https://easings.net/#easeInOutBounce
 #[must_use]
-#[inline(always)]
 fn bounce_in_out(t: f32) -> f32 {
     if t < 0.5 {
         (1.0 - bounce_out(2.0f32.mul_add(-t, 1.0))) / 2.0
@@ -72,21 +66,18 @@ fn bounce_in_out(t: f32) -> f32 {
 
 /// https://easings.net/#easeInCirc
 #[must_use]
-#[inline(always)]
 fn circ_in(t: f32) -> f32 {
     1.0 - t.mul_add(-t, 1.0).sqrt()
 }
 
 /// https://easings.net/#easeOutCirc
 #[must_use]
-#[inline(always)]
 fn circ_out(t: f32) -> f32 {
     (t - 1.0).mul_add(-(t - 1.0), 1.0).sqrt()
 }
 
 /// https://easings.net/#easeInOutCirc
 #[must_use]
-#[inline(always)]
 fn circ_in_out(t: f32) -> f32 {
     if t < 0.5 {
         (1.0 - (2.0 * t).mul_add(-(2.0 * t), 1.0).sqrt()) / 2.0
@@ -102,21 +93,18 @@ fn circ_in_out(t: f32) -> f32 {
 
 /// https://easings.net/#easeInCubic
 #[must_use]
-#[inline(always)]
 fn cubic_in(t: f32) -> f32 {
     t * t * t
 }
 
 /// https://easings.net/#easeOutCubic
 #[must_use]
-#[inline(always)]
 fn cubic_out(t: f32) -> f32 {
     1.0 - (1.0 - t).powi(3)
 }
 
 /// https://easings.net/#easeInOutCubic
 #[must_use]
-#[inline(always)]
 fn cubic_in_out(t: f32) -> f32 {
     if t < 0.5 {
         4.0 * t * t * t
@@ -130,7 +118,6 @@ const C5: f32 = (2.0 * PI) / 4.5;
 
 /// https://easings.net/#easeInElastic
 #[must_use]
-#[inline(always)]
 fn elastic_in(t: f32) -> f32 {
     if t <= 0.0 {
         0.0
@@ -143,7 +130,6 @@ fn elastic_in(t: f32) -> f32 {
 
 /// https://easings.net/#easeOutElastic
 #[must_use]
-#[inline(always)]
 fn elastic_out(t: f32) -> f32 {
     if t <= 0.0 {
         0.0
@@ -158,7 +144,6 @@ fn elastic_out(t: f32) -> f32 {
 
 /// https://easings.net/#easeInOutElastic
 #[must_use]
-#[inline(always)]
 fn elastic_in_out(t: f32) -> f32 {
     if t <= 0.0 {
         0.0
@@ -173,7 +158,6 @@ fn elastic_in_out(t: f32) -> f32 {
 
 /// https://easings.net/#easeInExpo
 #[must_use]
-#[inline(always)]
 fn expo_in(t: f32) -> f32 {
     if t <= 0.0 {
         0.0
@@ -184,7 +168,6 @@ fn expo_in(t: f32) -> f32 {
 
 /// https://easings.net/#easeOutExpo
 #[must_use]
-#[inline(always)]
 fn expo_out(t: f32) -> f32 {
     if 1.0 <= t {
         1.0
@@ -195,7 +178,6 @@ fn expo_out(t: f32) -> f32 {
 
 /// https://easings.net/#easeInOutExpo
 #[must_use]
-#[inline(always)]
 fn expo_in_out(t: f32) -> f32 {
     if t <= 0.0 {
         0.0
@@ -210,35 +192,32 @@ fn expo_in_out(t: f32) -> f32 {
 
 /// Linear easing.
 #[must_use]
-#[inline(always)]
+#[inline]
 const fn linear(t: f32) -> f32 {
     t
 }
 
 /// A linear easing that goes from `1.0` to `0.0`.
 #[must_use]
-#[inline(always)]
+#[inline]
 fn reverse(t: f32) -> f32 {
     1.0 - t
 }
 
 /// https://easings.net/#easeInQuad
 #[must_use]
-#[inline(always)]
 fn quad_in(t: f32) -> f32 {
     t * t
 }
 
 /// https://easings.net/#easeOutQuad
 #[must_use]
-#[inline(always)]
 fn quad_out(t: f32) -> f32 {
     (1.0 - t).mul_add(-(1.0 - t), 1.0)
 }
 
 /// https://easings.net/#easeInOutQuad
 #[must_use]
-#[inline(always)]
 fn quad_in_out(t: f32) -> f32 {
     if t < 0.5 {
         2.0 * t * t
@@ -249,21 +228,18 @@ fn quad_in_out(t: f32) -> f32 {
 
 /// https://easings.net/#easeInQuart
 #[must_use]
-#[inline(always)]
 fn quart_in(t: f32) -> f32 {
     t * t * t * t
 }
 
 /// https://easings.net/#easeOutQuart
 #[must_use]
-#[inline(always)]
 fn quart_out(t: f32) -> f32 {
     1.0 - (1.0 - t).powi(4)
 }
 
 /// https://easings.net/#easeInOutQuart
 #[must_use]
-#[inline(always)]
 fn quart_in_out(t: f32) -> f32 {
     if t < 0.5 {
         8.0 * t * t * t * t
@@ -274,21 +250,18 @@ fn quart_in_out(t: f32) -> f32 {
 
 /// https://easings.net/#easeInQuint
 #[must_use]
-#[inline(always)]
 fn quint_in(t: f32) -> f32 {
     t * t * t * t
 }
 
 /// https://easings.net/#easeOutQuint
 #[must_use]
-#[inline(always)]
 fn quint_out(t: f32) -> f32 {
     1.0 - (1.0 - t).powi(5)
 }
 
 /// https://easings.net/#easeInOutQuint
 #[must_use]
-#[inline(always)]
 fn quint_in_out(t: f32) -> f32 {
     if t < 0.5 {
         16.0 * t * t * t * t * t
@@ -299,21 +272,18 @@ fn quint_in_out(t: f32) -> f32 {
 
 /// https://easings.net/#easeInSine
 #[must_use]
-#[inline(always)]
 fn sine_in(t: f32) -> f32 {
     1.0 - (t * PI / 2.0).cos()
 }
 
 /// https://easings.net/#easeOutSine
 #[must_use]
-#[inline(always)]
 fn sine_out(t: f32) -> f32 {
     (t * PI / 2.0).sin()
 }
 
 /// https://easings.net/#easeInOutSine
 #[must_use]
-#[inline(always)]
 fn sine_in_out(t: f32) -> f32 {
     -((PI * t).cos() - 1.0) / 2.0
 }
@@ -450,6 +420,12 @@ pub enum Change {
     LoopSeconds(RangeInclusive<f64>),
     /// Change the loop points in samples.
     LoopIndex(RangeInclusive<usize>),
+    /// Control the audio panning.
+    ///
+    /// * Panning of 0.0 means hard left panning
+    /// * Panning of 0.5 means center panning (default)
+    /// * Panning of 1.0 means hard right panning
+    Panning(f32),
 }
 
 /// A command that specifies an action that is applied on a [`crate::Sound`]
@@ -545,7 +521,7 @@ impl<T: Tweenable> Parameter<T> {
     /// Start the tween.
     #[inline(always)]
     pub fn start_tween(&mut self, value: T) {
-        self.base_value = self.value;
+        self.base_value = value;
         self.value = value;
     }
 

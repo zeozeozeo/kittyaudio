@@ -46,7 +46,7 @@ fn main() {
 * Simple API, while being customizable
 * Optionally use [Symphonia](https://github.com/pdeljanov/Symphonia) to support most audio formats
 * Feature to disable audio playback support, if you want to use kittyaudio purely as an audio library
-* Commands to change volume, playback rate and position in the sound with easings
+* Commands to change volume, playback rate, position and panning in the sound with easings
 * Loops, and commands to change them with easings
 
 # Roadmap
