@@ -12,7 +12,7 @@
 
 # 0.1.7
 
-- fix `Sound` skipping the first three frames (https://github.com/zeozeozeo/kittyaudio/pull/1, thanks [@Sytronic](https://github.com/Sytronik)!)
+- fix `Sound` skipping the first three frames (https://github.com/zeozeozeo/kittyaudio/pull/1, thanks [@Sytronik](https://github.com/Sytronik)!)
 - add `pause()`, `paused()` and `resume()` methods for `Sound`
 
 # 0.1.4
