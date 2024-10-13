@@ -11,6 +11,7 @@ pub trait Renderer: Clone + Send + 'static {
     fn next_frame(&mut self, sample_rate: u32) -> Frame;
 
     /// This gets called when an audio buffer is done processing.
+    #[cfg(feature = "cpal")]
     fn on_buffer<T>(&mut self, _buffer: &mut [T])
     where
         T: cpal::SizedSample + cpal::FromSample<f32>,
@@ -60,6 +61,7 @@ impl Renderer for DefaultRenderer {
         out
     }
 
+    #[cfg(feature = "cpal")]
     fn on_buffer<T>(&mut self, buffer: &mut [T])
     where
         T: cpal::SizedSample + cpal::FromSample<f32>,
