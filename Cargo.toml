@@ -19,7 +19,7 @@ cpal = { version = "0.15.2", optional = true }
 parking_lot = "0.12.1"
 serde = { version = "1.0.193", features = ["derive"], optional = true }
 symphonia = { version = "0.5.3", features = ["all"], optional = true }
-thiserror = "1.0.52"
+thiserror = "2.0.0"
 
 [features]
 default = ["symphonia", "cpal"]
