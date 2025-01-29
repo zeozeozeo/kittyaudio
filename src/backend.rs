@@ -68,11 +68,10 @@ impl Device {
         self,
         host: cpal::Host,
     ) -> Result<cpal::SupportedBufferSize, KaError> {
-        Ok(self
+        Ok(*self
             .cpal_device(host)?
             .default_output_config()?
-            .buffer_size()
-            .clone())
+            .buffer_size())
     }
 
     /// Return the [cpal] device name.

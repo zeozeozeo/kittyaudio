@@ -23,15 +23,3 @@ fn main() {
     // wait for all sounds to finish (use mixer.is_finished() to check for that)
     mixer.wait();
 }
-
-// same thing but without comments.
-#[cfg(not)]
-fn main() {
-    let sound = include_sound!("drozerix_-_crush.ogg").unwrap();
-
-    let mut mixer = Mixer::new();
-    mixer.init();
-
-    mixer.play(sound);
-    mixer.wait();
-}

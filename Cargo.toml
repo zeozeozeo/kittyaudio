@@ -1,8 +1,8 @@
 [package]
 name = "kittyaudio"
 description = "An audio playback library focusing on simplicity"
-license = "MIT OR BSL-1.0"
-version = "0.1.9"
+license = "Unlicense OR MIT OR BSL-1.0"
+version = "0.2.0"
 exclude = ["assets/**"]
 documentation = "https://docs.rs/kittyaudio"
 homepage = "https://github.com/zeozeozeo/kittyaudio"
@@ -15,11 +15,11 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cpal = { version = "0.15.2", optional = true }
-parking_lot = "0.12.1"
-serde = { version = "1.0.193", features = ["derive"], optional = true }
-symphonia = { version = "0.5.3", features = ["all"], optional = true }
-thiserror = "2.0.0"
+cpal = { version = "0.15.3", optional = true }
+parking_lot = "0.12.3"
+serde = { version = "1", features = ["derive"], optional = true }
+symphonia = { version = "0.5.4", features = ["all"], optional = true }
+thiserror = "2.0.11"
 
 [features]
 default = ["symphonia", "cpal"]

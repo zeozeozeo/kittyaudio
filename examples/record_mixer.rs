@@ -7,7 +7,7 @@ use std::time::Instant;
 fn main() {
     println!("loading sound...");
     let sound = include_sound!("../assets/drozerix_-_crush.ogg").unwrap();
-    let mut mixer = RecordMixer::new();
+    let mixer = RecordMixer::new();
 
     mixer.play(sound);
 
