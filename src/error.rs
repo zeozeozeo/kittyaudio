@@ -29,6 +29,7 @@ pub enum KaError {
     #[error("failed to get default track as no tracks are present")]
     NoTracksArePresent,
     #[error("failed to get cpal device name: {0}")]
+    #[cfg(feature = "cpal")]
     DeviceNameError(#[from] cpal::DeviceNameError),
 
     // [`Sound`] errors
