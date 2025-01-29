@@ -134,7 +134,7 @@ impl RecordMixer {
     /// Note: Cloning a [`Sound`] *does not* take any extra memory, as [`Sound`]
     /// shares frame data with all clones.
     #[inline]
-    pub fn play(&mut self, sound: impl Into<SoundHandle>) -> SoundHandle {
+    pub fn play(&self, sound: impl Into<SoundHandle>) -> SoundHandle {
         let handle: SoundHandle = sound.into();
         self.renderer.guard().add_sound(handle.clone());
         handle
